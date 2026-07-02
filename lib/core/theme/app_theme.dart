@@ -27,9 +27,21 @@ class AppTheme {
       textTheme: const TextTheme(
         displayLarge: TextStyle(
           color: AppColors.white,
+          fontFamily: 'RugbyJamImpact',
           fontSize: 54,
           fontWeight: FontWeight.w900,
-          height: 0.92,
+          height: 0.9,
+          shadows: [
+            Shadow(
+              color: Color(0xD1E63946),
+              offset: Offset(0, 5),
+            ),
+            Shadow(
+              color: Color(0x7A000000),
+              offset: Offset(0, 18),
+              blurRadius: 36,
+            ),
+          ],
         ),
         headlineSmall: TextStyle(
           color: AppColors.white,

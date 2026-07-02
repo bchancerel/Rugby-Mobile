@@ -6,7 +6,7 @@ void main() {
     await tester.pumpWidget(const RugbyJamApp());
 
     expect(find.text('RugbyJam'), findsWidgets);
-    expect(find.text('Le rugby, partout, facilement'), findsOneWidget);
+    expect(find.text('LE RUGBY, PARTOUT, FACILEMENT'), findsOneWidget);
     expect(find.text('Se connecter'), findsOneWidget);
   });
 

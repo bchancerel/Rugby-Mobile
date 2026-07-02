@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
-import 'package:rugby_jam_mobile/core/assets/app_assets.dart';
 import 'package:rugby_jam_mobile/core/theme/app_colors.dart';
 import 'package:rugby_jam_mobile/core/theme/app_spacing.dart';
 import 'package:rugby_jam_mobile/core/widgets/app_button.dart';
+import 'package:rugby_jam_mobile/core/widgets/app_logo.dart';
 
 class LoginScreen extends StatelessWidget {
   const LoginScreen({super.key});
@@ -29,12 +29,7 @@ class LoginScreen extends StatelessWidget {
           ),
           children: [
             Center(
-              child: Image.asset(
-                AppAssets.logo,
-                width: 108,
-                height: 108,
-                fit: BoxFit.contain,
-              ),
+              child: AppLogo(size: 108),
             ),
             const SizedBox(height: AppSpacing.xl),
             Text(
