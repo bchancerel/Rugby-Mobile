@@ -5,6 +5,8 @@ import 'package:rugby_jam_mobile/core/theme/app_colors.dart';
 import 'package:rugby_jam_mobile/core/theme/app_spacing.dart';
 import 'package:rugby_jam_mobile/core/widgets/app_button.dart';
 import 'package:rugby_jam_mobile/core/widgets/app_logo.dart';
+import 'package:rugby_jam_mobile/features/auth/data/auth_api_client.dart';
+import 'package:rugby_jam_mobile/features/auth/data/auth_session_manager.dart';
 
 class HomeScreen extends StatelessWidget {
   const HomeScreen({super.key});
@@ -24,6 +26,10 @@ class HomeScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    if (AuthSessionManager.instance.isAuthenticated) {
+      return const _AuthenticatedHomeScreen();
+    }
+
     final viewportHeight = MediaQuery.sizeOf(context).height;
 
     return Scaffold(
@@ -60,6 +66,81 @@ class HomeScreen extends StatelessWidget {
             ),
           ),
         ],
+      ),
+    );
+  }
+}
+
+class _AuthenticatedHomeScreen extends StatefulWidget {
+  const _AuthenticatedHomeScreen();
+
+  @override
+  State<_AuthenticatedHomeScreen> createState() =>
+      _AuthenticatedHomeScreenState();
+}
+
+class _AuthenticatedHomeScreenState extends State<_AuthenticatedHomeScreen> {
+  bool _pending = false;
+
+  Future<void> _logout() async {
+    setState(() {
+      _pending = true;
+    });
+
+    try {
+      await AuthSessionManager.instance.logout();
+
+      if (!mounted) {
+        return;
+      }
+
+      Navigator.of(context).pushNamedAndRemoveUntil(
+        AppRoutes.login,
+        (route) => false,
+      );
+    } on AuthApiException catch (error) {
+      if (!mounted) {
+        return;
+      }
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(error.message)),
+      );
+    } catch (_) {
+      if (!mounted) {
+        return;
+      }
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Une erreur est survenue.')),
+      );
+    } finally {
+      if (mounted) {
+        setState(() {
+          _pending = false;
+        });
+      }
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      backgroundColor: AppColors.appBackground,
+      body: SafeArea(
+        child: Center(
+          child: Padding(
+            padding: const EdgeInsets.all(AppSpacing.lg),
+            child: SizedBox(
+              width: double.infinity,
+              child: AppButton(
+                label: _pending ? 'Deconnexion...' : 'Se deconnecter',
+                icon: Icons.logout,
+                onPressed: _pending ? null : _logout,
+              ),
+            ),
+          ),
+        ),
       ),
     );
   }
@@ -122,7 +203,7 @@ class _HeroSection extends StatelessWidget {
                 ),
                 const SizedBox(height: AppSpacing.lg),
                 Text(
-                  'Retrouve tous les resultats, classements et statistiques de tes competitions de rugby preferees en un seul endroit.',
+                  'Retrouve tous les résultats, classements et statistiques de tes compétitions de rugby préférées en un seul endroit.',
                   style: textTheme.bodyLarge,
                 ),
                 const SizedBox(height: 136),
@@ -214,7 +295,7 @@ class _CompetitionCarouselState extends State<_CompetitionCarousel> {
                       color: AppColors.primary,
                       borderRadius: BorderRadius.circular(6),
                     ),
-                    child: Text('Competitions', style: textTheme.titleMedium),
+                    child: Text('Compétitions', style: textTheme.titleMedium),
                   ),
                   const SizedBox(height: AppSpacing.md),
                   Text(
@@ -321,7 +402,7 @@ class _FeatureGridSection extends StatelessWidget {
         physics: const NeverScrollableScrollPhysics(),
         children: const [
           _FeatureTile(Icons.flash_on, 'Live', 'Scores et temps forts'),
-          _FeatureTile(Icons.star, 'Favoris', 'Tes equipes en premier'),
+          _FeatureTile(Icons.star, 'Favoris', 'Tes équipes en premier'),
           _FeatureTile(Icons.leaderboard, 'Classements', 'Lecture claire'),
           _FeatureTile(Icons.query_stats, 'Stats', 'Les chiffres utiles'),
         ],
@@ -359,7 +440,7 @@ class _SupporterSection extends StatelessWidget {
               ),
               const SizedBox(height: AppSpacing.md),
               Text(
-                'Suis tes equipes, debloque des badges et construis ton profil rugby au fil de la saison.',
+                'Suis tes équipes, débloque des badges et construis ton profil rugby au fil de la saison.',
                 style: textTheme.bodyLarge,
               ),
               const SizedBox(height: AppSpacing.lg),
