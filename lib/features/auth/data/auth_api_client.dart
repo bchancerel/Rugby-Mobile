@@ -7,9 +7,9 @@ import 'package:rugby_jam_mobile/features/auth/data/auth_models.dart';
 class AuthApiClient {
   AuthApiClient({
     HttpClient? httpClient,
-    String baseUrl = ApiConfig.baseUrl,
+    String? baseUrl,
   })  : _httpClient = httpClient ?? HttpClient(),
-        _baseUri = Uri.parse(baseUrl) {
+        _baseUri = Uri.parse(baseUrl ?? ApiConfig.baseUrl) {
     _httpClient.connectionTimeout = const Duration(seconds: 10);
   }
 

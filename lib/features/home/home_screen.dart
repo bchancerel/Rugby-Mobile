@@ -5,8 +5,6 @@ import 'package:rugby_jam_mobile/core/theme/app_colors.dart';
 import 'package:rugby_jam_mobile/core/theme/app_spacing.dart';
 import 'package:rugby_jam_mobile/core/widgets/app_button.dart';
 import 'package:rugby_jam_mobile/core/widgets/app_logo.dart';
-import 'package:rugby_jam_mobile/features/auth/data/auth_api_client.dart';
-import 'package:rugby_jam_mobile/features/auth/data/auth_session_manager.dart';
 
 class HomeScreen extends StatelessWidget {
   const HomeScreen({super.key});
@@ -26,10 +24,6 @@ class HomeScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    if (AuthSessionManager.instance.isAuthenticated) {
-      return const _AuthenticatedHomeScreen();
-    }
-
     final viewportHeight = MediaQuery.sizeOf(context).height;
 
     return Scaffold(
@@ -66,81 +60,6 @@ class HomeScreen extends StatelessWidget {
             ),
           ),
         ],
-      ),
-    );
-  }
-}
-
-class _AuthenticatedHomeScreen extends StatefulWidget {
-  const _AuthenticatedHomeScreen();
-
-  @override
-  State<_AuthenticatedHomeScreen> createState() =>
-      _AuthenticatedHomeScreenState();
-}
-
-class _AuthenticatedHomeScreenState extends State<_AuthenticatedHomeScreen> {
-  bool _pending = false;
-
-  Future<void> _logout() async {
-    setState(() {
-      _pending = true;
-    });
-
-    try {
-      await AuthSessionManager.instance.logout();
-
-      if (!mounted) {
-        return;
-      }
-
-      Navigator.of(context).pushNamedAndRemoveUntil(
-        AppRoutes.login,
-        (route) => false,
-      );
-    } on AuthApiException catch (error) {
-      if (!mounted) {
-        return;
-      }
-
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(error.message)),
-      );
-    } catch (_) {
-      if (!mounted) {
-        return;
-      }
-
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Une erreur est survenue.')),
-      );
-    } finally {
-      if (mounted) {
-        setState(() {
-          _pending = false;
-        });
-      }
-    }
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: AppColors.appBackground,
-      body: SafeArea(
-        child: Center(
-          child: Padding(
-            padding: const EdgeInsets.all(AppSpacing.lg),
-            child: SizedBox(
-              width: double.infinity,
-              child: AppButton(
-                label: _pending ? 'Deconnexion...' : 'Se deconnecter',
-                icon: Icons.logout,
-                onPressed: _pending ? null : _logout,
-              ),
-            ),
-          ),
-        ),
       ),
     );
   }

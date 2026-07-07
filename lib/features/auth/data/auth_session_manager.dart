@@ -22,6 +22,18 @@ class AuthSessionManager {
   bool get initialized => _initialized;
   bool get isAuthenticated => _user != null;
 
+  Future<bool> hasStoredSession() async {
+    final tokens = await _tokenStore.read();
+    final hasCompleteTokens = tokens != null && tokens.isComplete;
+
+    if (!hasCompleteTokens) {
+      _user = null;
+      _initialized = true;
+    }
+
+    return hasCompleteTokens;
+  }
+
   Future<AuthUser> login({
     required String email,
     required String password,
@@ -113,6 +125,11 @@ class AuthSessionManager {
       await clearSession();
       _initialized = true;
     }
+  }
+
+  Future<String?> readAccessToken() async {
+    final tokens = await _tokenStore.read();
+    return tokens?.accessToken;
   }
 
   Future<ApiMessageResponse> forgotPassword({required String email}) {

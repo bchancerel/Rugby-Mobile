@@ -2,6 +2,28 @@
 
 A new Flutter project.
 
+## API preprod
+
+Pour lancer l'app mobile contre l'API de preprod:
+
+```powershell
+.\scripts\run_preprod.ps1
+```
+
+Par defaut, ce script utilise:
+
+```text
+https://rugby-api-preprod.up.railway.app/api
+```
+
+Pour surcharger temporairement l'URL:
+
+```powershell
+.\scripts\run_preprod.ps1 -ApiBaseUrl "https://autre-api-preprod.example.com/api"
+```
+
+Le lancement local par defaut continue d'utiliser `http://localhost:3000/api`.
+
 ## Getting Started
 
 This project is a starting point for a Flutter application.
