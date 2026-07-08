@@ -36,16 +36,16 @@ class AppBottomNav extends StatefulWidget {
       activeIcon: Icons.calendar_month,
     ),
     _BottomNavItem(
+      routeName: AppRoutes.actualites,
+      label: 'Actualites',
+      icon: Icons.newspaper_outlined,
+      activeIcon: Icons.newspaper,
+    ),
+    _BottomNavItem(
       routeName: AppRoutes.supporter,
       label: 'Supporter',
       icon: Icons.workspace_premium_outlined,
       activeIcon: Icons.workspace_premium,
-    ),
-    _BottomNavItem(
-      routeName: AppRoutes.user,
-      label: 'Compte',
-      icon: Icons.person_outline,
-      activeIcon: Icons.person,
     ),
   ];
 
@@ -72,7 +72,10 @@ class _AppBottomNavState extends State<AppBottomNav> {
       }
 
       setState(() {
-        _indicatorIndex = _activeIndex.toDouble();
+        final activeIndex = _activeIndex;
+        if (activeIndex != null) {
+          _indicatorIndex = activeIndex.toDouble();
+        }
       });
     });
   }
@@ -81,10 +84,13 @@ class _AppBottomNavState extends State<AppBottomNav> {
   void didUpdateWidget(covariant AppBottomNav oldWidget) {
     super.didUpdateWidget(oldWidget);
     if (oldWidget.currentRoute != widget.currentRoute) {
-      setState(() {
-        _animationStartIndex = _indicatorIndex;
-        _indicatorIndex = _activeIndex.toDouble();
-      });
+      final activeIndex = _activeIndex;
+      if (activeIndex != null) {
+        setState(() {
+          _animationStartIndex = _indicatorIndex;
+          _indicatorIndex = activeIndex.toDouble();
+        });
+      }
     }
   }
 
@@ -96,10 +102,10 @@ class _AppBottomNavState extends State<AppBottomNav> {
       top: false,
       child: Padding(
         padding: const EdgeInsets.fromLTRB(
-          AppSpacing.md,
-          AppSpacing.xs,
-          AppSpacing.md,
           AppSpacing.sm,
+          AppSpacing.xs,
+          AppSpacing.sm,
+          AppSpacing.xs,
         ),
         child: ClipRRect(
           borderRadius: BorderRadius.circular(999),
@@ -128,50 +134,52 @@ class _AppBottomNavState extends State<AppBottomNav> {
 
                     return Stack(
                       children: [
-                        TweenAnimationBuilder<double>(
-                          tween: Tween<double>(
-                            begin: _animationStartIndex,
-                            end: _indicatorIndex,
-                          ),
-                          duration: const Duration(milliseconds: 340),
-                          curve: Curves.easeOutCubic,
-                          onEnd: () {
-                            _lastActiveIndex = _indicatorIndex;
-                            _animationStartIndex = _indicatorIndex;
-                          },
-                          builder: (context, value, child) {
-                            final animationDistance =
-                                (_indicatorIndex - _animationStartIndex).abs();
-                            final animationProgress = animationDistance == 0
-                                ? 1.0
-                                : ((value - _animationStartIndex).abs() /
-                                        animationDistance)
-                                    .clamp(0.0, 1.0)
-                                    .toDouble();
-                            final stretchLimit =
-                                (animationDistance * 11).clamp(10.0, 23.0)
-                                    .toDouble();
-                            final stretch = animationDistance == 0
-                                ? 0.0
-                                : math.sin(animationProgress * math.pi) *
-                                    stretchLimit;
-                            final direction =
-                                (_indicatorIndex - _animationStartIndex).sign;
-                            final left = (itemWidth * value) +
-                                _indicatorInset -
-                                (direction < 0 ? stretch : 0);
+                        if (activeIndex != null)
+                          TweenAnimationBuilder<double>(
+                            tween: Tween<double>(
+                              begin: _animationStartIndex,
+                              end: _indicatorIndex,
+                            ),
+                            duration: const Duration(milliseconds: 340),
+                            curve: Curves.easeOutCubic,
+                            onEnd: () {
+                              _lastActiveIndex = _indicatorIndex;
+                              _animationStartIndex = _indicatorIndex;
+                            },
+                            builder: (context, value, child) {
+                              final animationDistance =
+                                  (_indicatorIndex - _animationStartIndex)
+                                      .abs();
+                              final animationProgress = animationDistance == 0
+                                  ? 1.0
+                                  : ((value - _animationStartIndex).abs() /
+                                          animationDistance)
+                                      .clamp(0.0, 1.0)
+                                      .toDouble();
+                              final stretchLimit =
+                                  (animationDistance * 11).clamp(10.0, 23.0)
+                                      .toDouble();
+                              final stretch = animationDistance == 0
+                                  ? 0.0
+                                  : math.sin(animationProgress * math.pi) *
+                                      stretchLimit;
+                              final direction =
+                                  (_indicatorIndex - _animationStartIndex).sign;
+                              final left = (itemWidth * value) +
+                                  _indicatorInset -
+                                  (direction < 0 ? stretch : 0);
 
-                            return Positioned(
-                              top: _indicatorVerticalInset,
-                              left: left,
-                              child: _MovingIndicator(
-                                width: indicatorWidth + stretch,
-                                height: AppBottomNav.height -
-                                    (_indicatorVerticalInset * 2),
-                              ),
-                            );
-                          },
-                        ),
+                              return Positioned(
+                                top: _indicatorVerticalInset,
+                                left: left,
+                                child: _MovingIndicator(
+                                  width: indicatorWidth + stretch,
+                                  height: AppBottomNav.height -
+                                      (_indicatorVerticalInset * 2),
+                                ),
+                              );
+                            },
+                          ),
                         Row(
                           children:
                               AppBottomNav._items.asMap().entries.map((entry) {
@@ -183,7 +191,6 @@ class _AppBottomNavState extends State<AppBottomNav> {
                               child: _BottomNavButton(
                                 item: item,
                                 active: active,
-                                horizontalPadding: _indicatorInset + 2,
                                 onTap: active
                                     ? null
                                     : () => Navigator.of(context)
@@ -204,13 +211,13 @@ class _AppBottomNavState extends State<AppBottomNav> {
     );
   }
 
-  int get _activeIndex {
+  int? get _activeIndex {
     final index = AppBottomNav._items.indexWhere(
       (item) => _isActive(item.routeName),
     );
 
     if (index == -1) {
-      return 0;
+      return null;
     }
 
     return index;
@@ -229,8 +236,8 @@ class _AppBottomNavState extends State<AppBottomNav> {
       return widget.currentRoute.startsWith('${AppRoutes.matches}/');
     }
 
-    if (routeName == AppRoutes.user) {
-      return widget.currentRoute.startsWith('${AppRoutes.user}/');
+    if (routeName == AppRoutes.actualites) {
+      return widget.currentRoute.startsWith('${AppRoutes.actualites}/');
     }
 
     return false;
@@ -292,13 +299,11 @@ class _BottomNavButton extends StatefulWidget {
   const _BottomNavButton({
     required this.item,
     required this.active,
-    required this.horizontalPadding,
     required this.onTap,
   });
 
   final _BottomNavItem item;
   final bool active;
-  final double horizontalPadding;
   final VoidCallback? onTap;
 
   @override
@@ -329,45 +334,25 @@ class _BottomNavButtonState extends State<_BottomNavButton> {
       onTapDown: (_) => _setPressed(true),
       onTapUp: (_) => _setPressed(false),
       onTapCancel: () => _setPressed(false),
-      child: AnimatedScale(
-        scale: _pressed ? 0.94 : 1,
-        duration: const Duration(milliseconds: 130),
-        curve: Curves.easeOut,
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            SizedBox(
-              width: 40,
-              height: 30,
+      child: Semantics(
+        label: widget.item.label,
+        button: true,
+        selected: widget.active,
+        child: AnimatedScale(
+          scale: _pressed ? 0.94 : 1,
+          duration: const Duration(milliseconds: 130),
+          curve: Curves.easeOut,
+          child: Center(
+            child: SizedBox(
+              width: 48,
+              height: 48,
               child: Icon(
                 widget.active ? widget.item.activeIcon : widget.item.icon,
                 color: iconColor,
-                size: 22,
+                size: 26,
               ),
             ),
-            const SizedBox(height: 3),
-            SizedBox(
-              width: double.infinity,
-              child: Padding(
-                padding: EdgeInsets.symmetric(
-                  horizontal: widget.horizontalPadding,
-                ),
-                child: FittedBox(
-                  fit: BoxFit.scaleDown,
-                  child: Text(
-                    widget.item.label,
-                    maxLines: 1,
-                    style: Theme.of(context).textTheme.labelSmall?.copyWith(
-                          color: color,
-                          fontWeight: widget.active
-                              ? FontWeight.w800
-                              : FontWeight.w600,
-                        ),
-                  ),
-                ),
-              ),
-            ),
-          ],
+          ),
         ),
       ),
     );

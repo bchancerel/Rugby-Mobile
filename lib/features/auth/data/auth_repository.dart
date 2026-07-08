@@ -68,6 +68,44 @@ class AuthRepository {
     return _apiClient.fetchMe(accessToken: accessToken);
   }
 
+  Future<AuthUser> updateMe({
+    required String accessToken,
+    String? username,
+    String? currentPassword,
+    String? password,
+  }) {
+    return _apiClient.updateMe(
+      accessToken: accessToken,
+      payload: UpdateMePayload(
+        username: username,
+        currentPassword: currentPassword,
+        password: password,
+      ),
+    );
+  }
+
+  Future<List<UserSession>> fetchSessions({required String accessToken}) {
+    return _apiClient.fetchSessions(accessToken: accessToken);
+  }
+
+  Future<void> deleteMe({required String accessToken}) {
+    return _apiClient.deleteMe(accessToken: accessToken);
+  }
+
+  Future<void> revokeSession({
+    required String accessToken,
+    required String sessionId,
+  }) {
+    return _apiClient.revokeSession(
+      accessToken: accessToken,
+      sessionId: sessionId,
+    );
+  }
+
+  Future<void> revokeAllSessions({required String accessToken}) {
+    return _apiClient.revokeAllSessions(accessToken: accessToken);
+  }
+
   Future<ApiMessageResponse> refresh({String? refreshToken}) {
     return _apiClient.refresh(refreshToken: refreshToken);
   }

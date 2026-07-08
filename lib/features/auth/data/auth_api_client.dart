@@ -104,6 +104,68 @@ class AuthApiClient {
     return AuthUser.fromJson(json);
   }
 
+  Future<AuthUser> updateMe({
+    required String accessToken,
+    required UpdateMePayload payload,
+  }) async {
+    final json = await _requestJson(
+      method: 'PATCH',
+      path: '/users/me',
+      accessToken: accessToken,
+      body: payload.toJson(),
+    );
+    return AuthUser.fromJson(json);
+  }
+
+  Future<void> deleteMe({required String accessToken}) async {
+    await _request(
+      method: 'DELETE',
+      path: '/users/me',
+      accessToken: accessToken,
+      allowsEmptyResponse: true,
+    );
+  }
+
+  Future<List<UserSession>> fetchSessions({
+    required String accessToken,
+  }) async {
+    final json = await _request(
+      method: 'GET',
+      path: '/users/sessions',
+      accessToken: accessToken,
+    );
+
+    if (json is List) {
+      return json
+          .whereType<Map<String, dynamic>>()
+          .map(UserSession.fromJson)
+          .toList();
+    }
+
+    throw const AuthApiException(message: 'Reponse API invalide.');
+  }
+
+  Future<void> revokeSession({
+    required String accessToken,
+    required String sessionId,
+  }) async {
+    await _request(
+      method: 'DELETE',
+      path: '/users/sessions/$sessionId',
+      accessToken: accessToken,
+      allowsEmptyResponse: true,
+    );
+  }
+
+  Future<void> revokeAllSessions({required String accessToken}) async {
+    await _request(
+      method: 'DELETE',
+      path: '/users/sessions',
+      accessToken: accessToken,
+      allowsEmptyResponse: true,
+    );
+  }
+
   Future<Map<String, dynamic>> _postJson(
     String path, {
     Map<String, dynamic>? body,
@@ -120,6 +182,28 @@ class AuthApiClient {
   }
 
   Future<Map<String, dynamic>> _requestJson({
+    required String method,
+    required String path,
+    Map<String, dynamic>? body,
+    String? accessToken,
+    bool allowsEmptyResponse = false,
+  }) async {
+    final decoded = await _request(
+      method: method,
+      path: path,
+      body: body,
+      accessToken: accessToken,
+      allowsEmptyResponse: allowsEmptyResponse,
+    );
+
+    if (decoded is Map<String, dynamic>) {
+      return decoded;
+    }
+
+    throw const AuthApiException(message: 'Reponse API invalide.');
+  }
+
+  Future<Object?> _request({
     required String method,
     required String path,
     Map<String, dynamic>? body,
@@ -165,7 +249,7 @@ class AuthApiClient {
       }
 
       final decoded = jsonDecode(responseBody);
-      if (decoded is Map<String, dynamic>) {
+      if (decoded is Map<String, dynamic> || decoded is List) {
         return decoded;
       }
     } on AuthApiException {

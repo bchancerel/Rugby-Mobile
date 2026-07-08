@@ -182,6 +182,52 @@ class VerifyEmailPayload {
   }
 }
 
+class UpdateMePayload {
+  const UpdateMePayload({
+    this.username,
+    this.currentPassword,
+    this.password,
+  });
+
+  final String? username;
+  final String? currentPassword;
+  final String? password;
+
+  Map<String, dynamic> toJson() {
+    return {
+      if (username != null) 'username': username,
+      if (currentPassword != null) 'currentPassword': currentPassword,
+      if (password != null) 'password': password,
+    };
+  }
+}
+
+class UserSession {
+  const UserSession({
+    required this.id,
+    required this.createdAt,
+    required this.expiresAt,
+    this.userAgent,
+    this.ip,
+  });
+
+  final String id;
+  final String? userAgent;
+  final String? ip;
+  final DateTime createdAt;
+  final DateTime expiresAt;
+
+  factory UserSession.fromJson(Map<String, dynamic> json) {
+    return UserSession(
+      id: json['id'] as String? ?? '',
+      userAgent: json['userAgent'] as String?,
+      ip: json['ip'] as String?,
+      createdAt: _dateFromJson(json['createdAt']) ?? DateTime.now(),
+      expiresAt: _dateFromJson(json['expiresAt']) ?? DateTime.now(),
+    );
+  }
+}
+
 AuthRole _roleFromJson(Object? value) {
   return switch (value) {
     'ADMIN' => AuthRole.admin,

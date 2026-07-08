@@ -1,5 +1,4 @@
 import 'package:rugby_jam_mobile/core/network/api_client.dart';
-import 'package:rugby_jam_mobile/features/auth/data/auth_api_client.dart';
 import 'package:rugby_jam_mobile/features/auth/data/auth_session_manager.dart';
 import 'package:rugby_jam_mobile/features/dashboard/data/dashboard_models.dart';
 
@@ -18,27 +17,23 @@ class DashboardRepository {
   }
 
   Future<DashboardData> fetchDashboard() async {
-    final accessToken = await _sessionManager.readAccessToken();
-    if (accessToken == null || accessToken.isEmpty) {
-      throw const AuthApiException(
-        message: 'Session expiree. Reconnecte-toi pour continuer.',
-        statusCode: 401,
-      );
-    }
+    return _sessionManager.runAuthenticated(
+      (accessToken) async {
+        final favoritesJson = await _apiClient.getJson(
+          '/favorites',
+          accessToken: accessToken,
+        );
+        final matchesJson = await _apiClient.getJson(
+          '/rugby/matches/home',
+          accessToken: accessToken,
+          queryParameters: const {'includeGlobalFixtures': '0'},
+        );
 
-    final favoritesJson = await _apiClient.getJson(
-      '/favorites',
-      accessToken: accessToken,
-    );
-    final matchesJson = await _apiClient.getJson(
-      '/rugby/matches/home',
-      accessToken: accessToken,
-      queryParameters: const {'includeGlobalFixtures': '0'},
-    );
-
-    return DashboardData(
-      favorites: FavoritesResponse.fromJson(favoritesJson),
-      matchesHome: RugbyMatchesHome.fromJson(matchesJson),
+        return DashboardData(
+          favorites: FavoritesResponse.fromJson(favoritesJson),
+          matchesHome: RugbyMatchesHome.fromJson(matchesJson),
+        );
+      },
     );
   }
 }

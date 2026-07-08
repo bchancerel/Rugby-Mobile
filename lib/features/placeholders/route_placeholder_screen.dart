@@ -9,6 +9,9 @@ class RoutePlaceholderScreen extends StatelessWidget {
     required this.routeName,
     required this.icon,
     this.showBottomNav = false,
+    this.showAppBar = true,
+    this.showRouteName = true,
+    this.useImpactTitle = false,
     super.key,
   });
 
@@ -16,15 +19,23 @@ class RoutePlaceholderScreen extends StatelessWidget {
   final String routeName;
   final IconData icon;
   final bool showBottomNav;
+  final bool showAppBar;
+  final bool showRouteName;
+  final bool useImpactTitle;
 
   @override
   Widget build(BuildContext context) {
     final textTheme = Theme.of(context).textTheme;
-    final appBar = AppBar(
-      backgroundColor: AppColors.appBackground,
-      foregroundColor: AppColors.white,
-      title: Text(title),
-    );
+    final appBar = showAppBar
+        ? AppBar(
+            backgroundColor: AppColors.appBackground,
+            foregroundColor: AppColors.white,
+            title: Text(title),
+          )
+        : null;
+    final titleStyle = useImpactTitle
+        ? textTheme.displayLarge?.copyWith(fontSize: 40)
+        : textTheme.headlineSmall;
     final body = SafeArea(
       child: Padding(
         padding: const EdgeInsets.all(AppSpacing.lg),
@@ -33,14 +44,16 @@ class RoutePlaceholderScreen extends StatelessWidget {
           children: [
             Icon(icon, color: AppColors.primary, size: 40),
             const SizedBox(height: AppSpacing.lg),
-            Text(title, style: textTheme.headlineSmall),
-            const SizedBox(height: AppSpacing.sm),
-            Text(
-              routeName,
-              style: textTheme.bodyLarge?.copyWith(
-                color: AppColors.grayCool,
+            Text(title, style: titleStyle),
+            if (showRouteName) ...[
+              const SizedBox(height: AppSpacing.sm),
+              Text(
+                routeName,
+                style: textTheme.bodyLarge?.copyWith(
+                  color: AppColors.grayCool,
+                ),
               ),
-            ),
+            ],
           ],
         ),
       ),

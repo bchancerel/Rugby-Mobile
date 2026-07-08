@@ -28,6 +28,42 @@ class ApiClient {
     required String accessToken,
     Map<String, String>? queryParameters,
   }) async {
+    final decoded = await _getDecodedJson(
+      path,
+      accessToken: accessToken,
+      queryParameters: queryParameters,
+    );
+
+    if (decoded is Map<String, dynamic>) {
+      return decoded;
+    }
+
+    throw const AuthApiException(message: 'Reponse API invalide.');
+  }
+
+  Future<List<dynamic>> getJsonList(
+    String path, {
+    required String accessToken,
+    Map<String, String>? queryParameters,
+  }) async {
+    final decoded = await _getDecodedJson(
+      path,
+      accessToken: accessToken,
+      queryParameters: queryParameters,
+    );
+
+    if (decoded is List) {
+      return decoded;
+    }
+
+    throw const AuthApiException(message: 'Reponse API invalide.');
+  }
+
+  Future<dynamic> _getDecodedJson(
+    String path, {
+    required String accessToken,
+    Map<String, String>? queryParameters,
+  }) async {
     try {
       final uri = _resolve(path, queryParameters: queryParameters);
       final request = await _httpClient.getUrl(uri);
@@ -54,10 +90,7 @@ class ApiClient {
         return const <String, dynamic>{};
       }
 
-      final decoded = jsonDecode(responseBody);
-      if (decoded is Map<String, dynamic>) {
-        return decoded;
-      }
+      return jsonDecode(responseBody);
     } on AuthApiException {
       rethrow;
     } on SocketException {
@@ -96,7 +129,7 @@ class ApiClient {
       if (decoded is Map<String, dynamic>) {
         final message = decoded['message'];
         if (message is String && message.isNotEmpty) {
-          return message;
+          return _sanitizeApiMessage(message);
         }
       }
     } on FormatException {
@@ -104,6 +137,18 @@ class ApiClient {
     }
 
     return 'Une erreur est survenue.';
+  }
+
+  String _sanitizeApiMessage(String message) {
+    final normalizedMessage = message.toLowerCase();
+
+    if (normalizedMessage.contains('missing application key') ||
+        normalizedMessage.contains('application key') ||
+        normalizedMessage.contains('x-apisports-key')) {
+      return 'Service rugby indisponible: la cle API preprod est manquante ou invalide.';
+    }
+
+    return message;
   }
 
   String _networkErrorMessage() {

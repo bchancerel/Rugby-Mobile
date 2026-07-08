@@ -188,9 +188,10 @@ class _DashboardHeader extends StatelessWidget {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text('Accueil', style: textTheme.bodyMedium),
-              const SizedBox(height: AppSpacing.xs),
-              Text('Dashboard', style: textTheme.headlineSmall),
+              Text(
+                'Dashboard',
+                style: textTheme.displayLarge?.copyWith(fontSize: 40),
+              ),
               const SizedBox(height: AppSpacing.xs),
               Text(
                 name,

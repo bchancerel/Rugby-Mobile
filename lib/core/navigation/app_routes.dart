@@ -8,7 +8,10 @@ import 'package:rugby_jam_mobile/features/auth/reset_password_screen.dart';
 import 'package:rugby_jam_mobile/features/auth/verify_email_screen.dart';
 import 'package:rugby_jam_mobile/features/dashboard/dashboard_screen.dart';
 import 'package:rugby_jam_mobile/features/home/home_screen.dart';
+import 'package:rugby_jam_mobile/features/leagues/leagues_screen.dart';
 import 'package:rugby_jam_mobile/features/placeholders/route_placeholder_screen.dart';
+import 'package:rugby_jam_mobile/features/supporter/supporter_screen.dart';
+import 'package:rugby_jam_mobile/features/user/user_account_screen.dart';
 
 class AppRoutes {
   const AppRoutes._();
@@ -98,12 +101,7 @@ class AppRoutes {
       forgotPassword => const ForgotPasswordScreen(),
       resetPassword => ResetPasswordScreen(token: token),
       verifyEmail => VerifyEmailScreen(token: token),
-      leagues => const RoutePlaceholderScreen(
-          title: 'Leagues',
-          routeName: leagues,
-          icon: Icons.emoji_events,
-          showBottomNav: true,
-        ),
+      leagues => const LeaguesScreen(),
       matches => const RoutePlaceholderScreen(
           title: 'Matchs',
           routeName: matches,
@@ -120,19 +118,10 @@ class AppRoutes {
           title: 'Actualites',
           routeName: actualites,
           icon: Icons.newspaper,
-        ),
-      supporter => const RoutePlaceholderScreen(
-          title: 'Supporter',
-          routeName: supporter,
-          icon: Icons.workspace_premium,
           showBottomNav: true,
         ),
-      user => const RoutePlaceholderScreen(
-          title: 'Mon compte',
-          routeName: user,
-          icon: Icons.person,
-          showBottomNav: true,
-        ),
+      supporter => const SupporterScreen(),
+      user => const UserAccountScreen(),
       admin => const RoutePlaceholderScreen(
           title: 'Administration',
           routeName: admin,
@@ -260,6 +249,7 @@ class AppRoutes {
     return routeName == dashboard ||
         routeName == leagues ||
         routeName == matches ||
+        routeName == actualites ||
         routeName == supporter ||
         routeName == user;
   }

@@ -1,7 +1,11 @@
+import 'dart:convert';
+
 import 'package:rugby_jam_mobile/features/auth/data/auth_api_client.dart';
 import 'package:rugby_jam_mobile/features/auth/data/auth_models.dart';
 import 'package:rugby_jam_mobile/features/auth/data/auth_repository.dart';
 import 'package:rugby_jam_mobile/features/auth/data/auth_token_store.dart';
+
+typedef AuthenticatedRequest<T> = Future<T> Function(String accessToken);
 
 class AuthSessionManager {
   AuthSessionManager({
@@ -17,6 +21,7 @@ class AuthSessionManager {
 
   AuthUser? _user;
   bool _initialized = false;
+  Future<AuthTokens?>? _refreshRequest;
 
   AuthUser? get user => _user;
   bool get initialized => _initialized;
@@ -75,6 +80,7 @@ class AuthSessionManager {
       return _user;
     } on AuthApiException catch (error) {
       if (error.statusCode != 401) {
+        _user = _userFromToken(tokens.accessToken);
         rethrow;
       }
 
@@ -85,31 +91,59 @@ class AuthSessionManager {
   }
 
   Future<AuthUser?> refreshSession({String? refreshToken}) async {
-    final currentTokens = await _tokenStore.read();
-    final token = refreshToken ?? currentTokens?.refreshToken;
-
-    if (token == null || token.isEmpty) {
-      await clearSession();
-      return null;
-    }
-
     try {
-      final refreshed = await _repository.refresh(refreshToken: token);
-      final nextTokens = _tokensFromRefresh(refreshed);
+      final nextTokens = await _refreshTokens(refreshToken: refreshToken);
+      if (nextTokens == null) {
+        return null;
+      }
 
-      if (nextTokens == null || !nextTokens.isComplete) {
+      _user = await _repository.fetchMe(accessToken: nextTokens.accessToken);
+      return _user;
+    } on AuthApiException catch (error) {
+      if (error.statusCode == 401) {
         await clearSession();
         return null;
       }
 
-      await _tokenStore.write(nextTokens);
-      _user = await _repository.fetchMe(accessToken: nextTokens.accessToken);
-      return _user;
-    } on AuthApiException {
-      await clearSession();
-      return null;
+      final tokens = await _tokenStore.read();
+      if (tokens != null) {
+        _user = _userFromToken(tokens.accessToken) ??
+            _userFromToken(tokens.refreshToken);
+      }
+
+      rethrow;
     } finally {
       _initialized = true;
+    }
+  }
+
+  Future<T> runAuthenticated<T>(AuthenticatedRequest<T> request) async {
+    final tokens = await _requireTokens();
+
+    try {
+      return await request(tokens.accessToken);
+    } on AuthApiException catch (error) {
+      if (error.statusCode != 401) {
+        rethrow;
+      }
+    }
+
+    final nextTokens = await _refreshTokens(refreshToken: tokens.refreshToken);
+    if (nextTokens == null) {
+      throw const AuthApiException(
+        message: 'Session expiree. Reconnecte-toi pour continuer.',
+        statusCode: 401,
+      );
+    }
+
+    try {
+      return await request(nextTokens.accessToken);
+    } on AuthApiException catch (error) {
+      if (error.statusCode == 401) {
+        await clearSession();
+      }
+
+      rethrow;
     }
   }
 
@@ -127,9 +161,51 @@ class AuthSessionManager {
     }
   }
 
-  Future<String?> readAccessToken() async {
-    final tokens = await _tokenStore.read();
-    return tokens?.accessToken;
+  Future<AuthUser> updateMe({
+    String? username,
+    String? currentPassword,
+    String? password,
+  }) async {
+    _user = await runAuthenticated(
+      (accessToken) => _repository.updateMe(
+        accessToken: accessToken,
+        username: username,
+        currentPassword: currentPassword,
+        password: password,
+      ),
+    );
+    return _user!;
+  }
+
+  Future<List<UserSession>> fetchSessions() async {
+    return runAuthenticated(
+      (accessToken) => _repository.fetchSessions(accessToken: accessToken),
+    );
+  }
+
+  Future<void> deleteMe() async {
+    await runAuthenticated(
+      (accessToken) => _repository.deleteMe(accessToken: accessToken),
+    );
+    await clearSession();
+    _initialized = true;
+  }
+
+  Future<void> revokeSession(String sessionId) async {
+    await runAuthenticated(
+      (accessToken) => _repository.revokeSession(
+        accessToken: accessToken,
+        sessionId: sessionId,
+      ),
+    );
+  }
+
+  Future<void> revokeAllSessions() async {
+    await runAuthenticated(
+      (accessToken) => _repository.revokeAllSessions(accessToken: accessToken),
+    );
+    await clearSession();
+    _initialized = true;
   }
 
   Future<ApiMessageResponse> forgotPassword({required String email}) {
@@ -151,21 +227,27 @@ class AuthSessionManager {
   }
 
   Future<ApiMessageResponse> resendVerification() async {
-    final tokens = await _tokenStore.read();
-
-    if (tokens == null || tokens.accessToken.isEmpty) {
-      throw const AuthApiException(
-        message: 'Connecte-toi pour renvoyer le lien de verification.',
-        statusCode: 401,
-      );
-    }
-
-    return _repository.resendVerification(accessToken: tokens.accessToken);
+    return runAuthenticated(
+      (accessToken) => _repository.resendVerification(accessToken: accessToken),
+    );
   }
 
   Future<void> clearSession() async {
     _user = null;
     await _tokenStore.clear();
+  }
+
+  Future<AuthTokens> _requireTokens() async {
+    final tokens = await _tokenStore.read();
+
+    if (tokens == null || !tokens.isComplete) {
+      throw const AuthApiException(
+        message: 'Connecte-toi pour continuer.',
+        statusCode: 401,
+      );
+    }
+
+    return tokens;
   }
 
   Future<void> _saveSession(AuthSession session) async {
@@ -193,5 +275,89 @@ class AuthSessionManager {
       accessToken: accessToken,
       refreshToken: refreshToken,
     );
+  }
+
+  Future<AuthTokens?> _refreshTokens({String? refreshToken}) async {
+    if (_refreshRequest != null) {
+      return await _refreshRequest!;
+    }
+
+    _refreshRequest = _refreshTokensOnce(refreshToken: refreshToken);
+
+    try {
+      return await _refreshRequest!;
+    } finally {
+      _refreshRequest = null;
+    }
+  }
+
+  Future<AuthTokens?> _refreshTokensOnce({String? refreshToken}) async {
+    final currentTokens = await _tokenStore.read();
+    final token = refreshToken ?? currentTokens?.refreshToken;
+
+    if (token == null || token.isEmpty) {
+      await clearSession();
+      return null;
+    }
+
+    try {
+      final refreshed = await _repository.refresh(refreshToken: token);
+      final nextTokens = _tokensFromRefresh(refreshed);
+
+      if (nextTokens == null || !nextTokens.isComplete) {
+        await clearSession();
+        return null;
+      }
+
+      await _tokenStore.write(nextTokens);
+      return nextTokens;
+    } on AuthApiException catch (error) {
+      if (error.statusCode == 400 || error.statusCode == 401) {
+        await clearSession();
+        return null;
+      }
+
+      rethrow;
+    }
+  }
+
+  AuthUser? _userFromToken(String token) {
+    final parts = token.split('.');
+    if (parts.length < 2) {
+      return null;
+    }
+
+    try {
+      final payload = jsonDecode(
+        utf8.decode(base64Url.decode(base64Url.normalize(parts[1]))),
+      );
+
+      if (payload is! Map<String, dynamic>) {
+        return null;
+      }
+
+      final id = payload['id'];
+      final email = payload['email'];
+      if (id is! String || id.isEmpty || email is! String || email.isEmpty) {
+        return null;
+      }
+
+      return AuthUser(
+        id: id,
+        email: email,
+        role: _roleFromToken(payload['role']),
+        emailVerified: payload['emailVerified'] == true,
+      );
+    } on FormatException {
+      return null;
+    }
+  }
+
+  AuthRole _roleFromToken(Object? value) {
+    if (value is String && value.toUpperCase() == 'ADMIN') {
+      return AuthRole.admin;
+    }
+
+    return AuthRole.user;
   }
 }
