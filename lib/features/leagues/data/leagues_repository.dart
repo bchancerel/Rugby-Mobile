@@ -28,4 +28,25 @@ class LeaguesRepository {
       },
     );
   }
+
+  Future<RugbyLeagueOverview?> fetchLeagueOverview(
+    int leagueId, {
+    int? season,
+  }) {
+    return _sessionManager.runAuthenticated(
+      (accessToken) async {
+        final json = await _apiClient.getJson(
+          '/rugby/leagues/$leagueId/overview',
+          accessToken: accessToken,
+          queryParameters: season == null
+              ? null
+              : {
+                  'season': season.toString(),
+                },
+        );
+
+        return RugbyLeagueOverview.fromJson(json);
+      },
+    );
+  }
 }

@@ -1,3 +1,5 @@
+import 'package:rugby_jam_mobile/features/dashboard/data/dashboard_models.dart';
+
 class RugbyLeague {
   const RugbyLeague({
     required this.id,
@@ -114,6 +116,180 @@ class RugbyLeagueSeason {
   }
 }
 
+class RugbyLeagueOverview {
+  const RugbyLeagueOverview({
+    required this.league,
+    required this.season,
+    required this.standings,
+    required this.rounds,
+    required this.fixtures,
+  });
+
+  final RugbyLeague league;
+  final int? season;
+  final List<RugbyStandingGroup> standings;
+  final List<String> rounds;
+  final List<RugbyFixture> fixtures;
+
+  static RugbyLeagueOverview? fromJson(Object? json) {
+    if (json is! Map<String, dynamic>) {
+      return null;
+    }
+
+    final league = RugbyLeague.fromJson(json['league']);
+    if (league == null) {
+      return null;
+    }
+
+    return RugbyLeagueOverview(
+      league: league,
+      season: _readNullableInt(json['season']),
+      standings: _readList(json['standings'], RugbyStandingGroup.fromJson),
+      rounds: _readStringList(json['rounds']),
+      fixtures: _readList(json['fixtures'], RugbyFixture.fromJson),
+    );
+  }
+
+  bool get hasVisibleContent {
+    return standings.any((group) => group.rows.isNotEmpty) ||
+        fixtures.isNotEmpty ||
+        rounds.isNotEmpty;
+  }
+
+  List<int> get seasonOptions {
+    final years = league.seasons.map((season) => season.year).whereType<int>();
+    return {
+      ...years,
+      if (season != null) season!,
+    }.toList()
+      ..sort((a, b) => b.compareTo(a));
+  }
+}
+
+class RugbyStandingGroup {
+  const RugbyStandingGroup({
+    required this.name,
+    required this.rows,
+  });
+
+  final String? name;
+  final List<RugbyStanding> rows;
+
+  static RugbyStandingGroup? fromJson(Object? json) {
+    if (json is! Map<String, dynamic>) {
+      return null;
+    }
+
+    return RugbyStandingGroup(
+      name: _readNullableString(json['name']),
+      rows: _readList(json['rows'], RugbyStanding.fromJson),
+    );
+  }
+
+  String get displayName {
+    return name ?? 'Classement';
+  }
+}
+
+class RugbyStanding {
+  const RugbyStanding({
+    required this.rank,
+    required this.team,
+    required this.group,
+    required this.form,
+    required this.status,
+    required this.description,
+    required this.points,
+    required this.pointsDiff,
+    required this.all,
+  });
+
+  final int? rank;
+  final RugbyStandingTeam team;
+  final String? group;
+  final String? form;
+  final String? status;
+  final String? description;
+  final int? points;
+  final int? pointsDiff;
+  final RugbyStandingRecord all;
+
+  static RugbyStanding? fromJson(Object? json) {
+    if (json is! Map<String, dynamic>) {
+      return null;
+    }
+
+    return RugbyStanding(
+      rank: _readNullableInt(json['rank']),
+      team: RugbyStandingTeam.fromJson(json['team']),
+      group: _readNullableString(json['group']),
+      form: _readNullableString(json['form']),
+      status: _readNullableString(json['status']),
+      description: _readNullableString(json['description']),
+      points: _readNullableInt(json['points']),
+      pointsDiff: _readNullableInt(json['pointsDiff']),
+      all: RugbyStandingRecord.fromJson(json['all']),
+    );
+  }
+}
+
+class RugbyStandingTeam {
+  const RugbyStandingTeam({
+    required this.id,
+    required this.name,
+    required this.logo,
+  });
+
+  final int? id;
+  final String? name;
+  final String? logo;
+
+  factory RugbyStandingTeam.fromJson(Object? json) {
+    final map = json is Map<String, dynamic> ? json : const <String, dynamic>{};
+
+    return RugbyStandingTeam(
+      id: _readNullableInt(map['id']),
+      name: _readNullableString(map['name']),
+      logo: _readNullableString(map['logo']),
+    );
+  }
+
+  String get displayName {
+    return name ?? 'Equipe';
+  }
+}
+
+class RugbyStandingRecord {
+  const RugbyStandingRecord({
+    required this.played,
+    required this.win,
+    required this.draw,
+    required this.loss,
+    required this.pointsFor,
+    required this.pointsAgainst,
+  });
+
+  final int? played;
+  final int? win;
+  final int? draw;
+  final int? loss;
+  final int? pointsFor;
+  final int? pointsAgainst;
+
+  factory RugbyStandingRecord.fromJson(Object? json) {
+    final map = json is Map<String, dynamic> ? json : const <String, dynamic>{};
+
+    return RugbyStandingRecord(
+      played: _readNullableInt(map['played']),
+      win: _readNullableInt(map['win']),
+      draw: _readNullableInt(map['draw']),
+      loss: _readNullableInt(map['loss']),
+      pointsFor: _readNullableInt(map['pointsFor']),
+      pointsAgainst: _readNullableInt(map['pointsAgainst']),
+    );
+  }
+}
+
 class RugbyLeagueCountryGroup {
   const RugbyLeagueCountryGroup({
     required this.countryName,
@@ -224,6 +400,14 @@ List<T> _readList<T>(Object? value, T? Function(Object? json) mapper) {
   }
 
   return value.map(mapper).whereType<T>().toList();
+}
+
+List<String> _readStringList(Object? value) {
+  if (value is! List) {
+    return const [];
+  }
+
+  return value.map(_readNullableString).whereType<String>().toList();
 }
 
 String _readString(Object? value, {String fallback = ''}) {

@@ -75,6 +75,16 @@ class AuthSessionManager {
       return null;
     }
 
+    if (_isTokenExpired(tokens.refreshToken)) {
+      await clearSession();
+      _initialized = true;
+      return null;
+    }
+
+    if (_isTokenExpired(tokens.accessToken)) {
+      return refreshSession(refreshToken: tokens.refreshToken);
+    }
+
     try {
       _user = await _repository.fetchMe(accessToken: tokens.accessToken);
       return _user;
@@ -91,6 +101,7 @@ class AuthSessionManager {
   }
 
   Future<AuthUser?> refreshSession({String? refreshToken}) async {
+    final tokensBeforeRefresh = await _tokenStore.read();
     try {
       final nextTokens = await _refreshTokens(refreshToken: refreshToken);
       if (nextTokens == null) {
@@ -106,9 +117,11 @@ class AuthSessionManager {
       }
 
       final tokens = await _tokenStore.read();
-      if (tokens != null) {
-        _user = _userFromToken(tokens.accessToken) ??
-            _userFromToken(tokens.refreshToken);
+      final fallbackToken = tokens?.accessToken ?? tokensBeforeRefresh?.accessToken;
+      if (fallbackToken != null && !_isTokenExpired(fallbackToken)) {
+        _user = _userFromToken(fallbackToken);
+      } else {
+        _user = null;
       }
 
       rethrow;
@@ -119,9 +132,19 @@ class AuthSessionManager {
 
   Future<T> runAuthenticated<T>(AuthenticatedRequest<T> request) async {
     final tokens = await _requireTokens();
+    final accessToken = _isTokenExpired(tokens.accessToken)
+        ? (await _refreshTokens(refreshToken: tokens.refreshToken))?.accessToken
+        : tokens.accessToken;
+
+    if (accessToken == null) {
+      throw const AuthApiException(
+        message: 'Session expiree. Reconnecte-toi pour continuer.',
+        statusCode: 401,
+      );
+    }
 
     try {
-      return await request(tokens.accessToken);
+      return await request(accessToken);
     } on AuthApiException catch (error) {
       if (error.statusCode != 401) {
         rethrow;
@@ -240,7 +263,10 @@ class AuthSessionManager {
   Future<AuthTokens> _requireTokens() async {
     final tokens = await _tokenStore.read();
 
-    if (tokens == null || !tokens.isComplete) {
+    if (tokens == null ||
+        !tokens.isComplete ||
+        _isTokenExpired(tokens.refreshToken)) {
+      await clearSession();
       throw const AuthApiException(
         message: 'Connecte-toi pour continuer.',
         statusCode: 401,
@@ -322,15 +348,10 @@ class AuthSessionManager {
   }
 
   AuthUser? _userFromToken(String token) {
-    final parts = token.split('.');
-    if (parts.length < 2) {
-      return null;
-    }
+    if (_isTokenExpired(token)) return null;
 
     try {
-      final payload = jsonDecode(
-        utf8.decode(base64Url.decode(base64Url.normalize(parts[1]))),
-      );
+      final payload = _payloadFromToken(token);
 
       if (payload is! Map<String, dynamic>) {
         return null;
@@ -359,5 +380,42 @@ class AuthSessionManager {
     }
 
     return AuthRole.user;
+  }
+
+  bool _isTokenExpired(String token) {
+    final payload = _payloadFromToken(token);
+    if (payload is! Map<String, dynamic>) {
+      return true;
+    }
+
+    final exp = payload['exp'];
+    final expiresAt = switch (exp) {
+      int value => value,
+      num value => value.toInt(),
+      String value => int.tryParse(value),
+      _ => null,
+    };
+
+    if (expiresAt == null) {
+      return true;
+    }
+
+    final now = DateTime.now().millisecondsSinceEpoch ~/ 1000;
+    return expiresAt <= now;
+  }
+
+  Object? _payloadFromToken(String token) {
+    final parts = token.split('.');
+    if (parts.length < 2) {
+      return null;
+    }
+
+    try {
+      return jsonDecode(
+        utf8.decode(base64Url.decode(base64Url.normalize(parts[1]))),
+      );
+    } on FormatException {
+      return null;
+    }
   }
 }

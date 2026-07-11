@@ -101,7 +101,6 @@ class ApiClient {
       throw const AuthApiException(message: 'Reponse API invalide.');
     }
 
-    throw const AuthApiException(message: 'Reponse API invalide.');
   }
 
   Uri _resolve(

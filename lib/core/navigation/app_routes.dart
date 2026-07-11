@@ -8,6 +8,7 @@ import 'package:rugby_jam_mobile/features/auth/reset_password_screen.dart';
 import 'package:rugby_jam_mobile/features/auth/verify_email_screen.dart';
 import 'package:rugby_jam_mobile/features/dashboard/dashboard_screen.dart';
 import 'package:rugby_jam_mobile/features/home/home_screen.dart';
+import 'package:rugby_jam_mobile/features/leagues/league_detail_screen.dart';
 import 'package:rugby_jam_mobile/features/leagues/leagues_screen.dart';
 import 'package:rugby_jam_mobile/features/placeholders/route_placeholder_screen.dart';
 import 'package:rugby_jam_mobile/features/supporter/supporter_screen.dart';
@@ -54,24 +55,34 @@ class AppRoutes {
         transitionDuration: Duration.zero,
         reverseTransitionDuration: Duration.zero,
         pageBuilder: (context, animation, secondaryAnimation) {
-          return _buildScreen(routeName, token);
+          return _buildScreen(
+            routeName,
+            token,
+            parsedRoute.queryParameters,
+          );
         },
       );
     }
 
     return MaterialPageRoute<void>(
       settings: routeSettings,
-      builder: (context) => _buildScreen(routeName, token),
+      builder: (context) => _buildScreen(
+        routeName,
+        token,
+        parsedRoute.queryParameters,
+      ),
     );
   }
 
-  static Widget _buildScreen(String routeName, String token) {
+  static Widget _buildScreen(
+    String routeName,
+    String token,
+    Map<String, String> queryParameters,
+  ) {
     if (_isLeagueDetailRoute(routeName)) {
-      return RoutePlaceholderScreen(
-        title: 'Championnat',
-        routeName: routeName,
-        icon: Icons.emoji_events,
-        showBottomNav: true,
+      return LeagueDetailScreen(
+        leagueId: _leagueIdFromRoute(routeName),
+        initialSeason: int.tryParse(queryParameters['season'] ?? ''),
       );
     }
 
@@ -235,6 +246,11 @@ class AppRoutes {
         routeName.length > leagues.length + 1;
   }
 
+  static int _leagueIdFromRoute(String routeName) {
+    final rawId = routeName.substring(leagues.length + 1);
+    return int.tryParse(rawId) ?? 0;
+  }
+
   static bool _isMatchDetailRoute(String routeName) {
     return routeName.startsWith('$matches/') &&
         routeName.length > matches.length + 1;
@@ -248,6 +264,7 @@ class AppRoutes {
   static bool _isBottomNavRoute(String routeName) {
     return routeName == dashboard ||
         routeName == leagues ||
+        _isLeagueDetailRoute(routeName) ||
         routeName == matches ||
         routeName == actualites ||
         routeName == supporter ||
