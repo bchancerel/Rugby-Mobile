@@ -5,8 +5,9 @@ import 'package:rugby_jam_mobile/core/navigation/app_routes.dart';
 import 'package:rugby_jam_mobile/core/theme/app_colors.dart';
 import 'package:rugby_jam_mobile/core/theme/app_spacing.dart';
 import 'package:rugby_jam_mobile/core/widgets/app_bottom_nav.dart';
+import 'package:rugby_jam_mobile/features/supporter/data/supporter_tracking.dart';
 
-class AppNavScaffold extends StatelessWidget {
+class AppNavScaffold extends StatefulWidget {
   const AppNavScaffold({
     required this.currentRoute,
     required this.body,
@@ -19,19 +20,38 @@ class AppNavScaffold extends StatelessWidget {
   final PreferredSizeWidget? appBar;
 
   @override
+  State<AppNavScaffold> createState() => _AppNavScaffoldState();
+}
+
+class _AppNavScaffoldState extends State<AppNavScaffold> {
+  @override
+  void initState() {
+    super.initState();
+    SupporterTracking.trackDailyActive();
+  }
+
+  @override
+  void didUpdateWidget(covariant AppNavScaffold oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.currentRoute != widget.currentRoute) {
+      SupporterTracking.trackDailyActive();
+    }
+  }
+
+  @override
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: AppColors.appBackground,
-      appBar: appBar,
-      bottomNavigationBar: AppBottomNav(currentRoute: currentRoute),
+      appBar: widget.appBar,
+      bottomNavigationBar: AppBottomNav(currentRoute: widget.currentRoute),
       body: Stack(
         children: [
-          Positioned.fill(child: body),
+          Positioned.fill(child: widget.body),
           Positioned(
             top: AppSpacing.md,
             right: AppSpacing.md,
             child: SafeArea(
-              child: _ProfileShortcut(currentRoute: currentRoute),
+              child: _ProfileShortcut(currentRoute: widget.currentRoute),
             ),
           ),
         ],

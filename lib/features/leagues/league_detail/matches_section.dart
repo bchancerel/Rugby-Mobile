@@ -333,9 +333,12 @@ class _MatchCard extends StatelessWidget {
     return GestureDetector(
       behavior: HitTestBehavior.opaque,
       onTap: canOpenMatch
-          ? () => Navigator.of(context).pushNamed(
+          ? () {
+              SupporterTracking.trackFixtureOpened(fixture);
+              Navigator.of(context).pushNamed(
                 '${AppRoutes.matches}/${fixture.id}',
-              )
+              );
+            }
           : null,
       child: DecoratedBox(
         decoration: BoxDecoration(
@@ -375,8 +378,12 @@ class _MatchCard extends StatelessWidget {
                 children: [
                   Expanded(
                     child: _FixtureTeamColumn(
-                      name: fixture.teams.home.name ?? 'Domicile',
-                      logo: fixture.teams.home.logo,
+                      team: fixture.teams.home,
+                      routeName: _teamDetailRoute(
+                        teamId: fixture.teams.home.id,
+                        leagueId: fixture.league.id,
+                        season: fixture.league.season,
+                      ),
                     ),
                   ),
                   Padding(
@@ -393,8 +400,12 @@ class _MatchCard extends StatelessWidget {
                   ),
                   Expanded(
                     child: _FixtureTeamColumn(
-                      name: fixture.teams.away.name ?? 'Exterieur',
-                      logo: fixture.teams.away.logo,
+                      team: fixture.teams.away,
+                      routeName: _teamDetailRoute(
+                        teamId: fixture.teams.away.id,
+                        leagueId: fixture.league.id,
+                        season: fixture.league.season,
+                      ),
                       alignEnd: true,
                     ),
                   ),
@@ -410,25 +421,25 @@ class _MatchCard extends StatelessWidget {
 
 class _FixtureTeamColumn extends StatelessWidget {
   const _FixtureTeamColumn({
-    required this.name,
-    required this.logo,
+    required this.team,
+    required this.routeName,
     this.alignEnd = false,
   });
 
-  final String name;
-  final String? logo;
+  final RugbyFixtureTeam team;
+  final String? routeName;
   final bool alignEnd;
 
   @override
   Widget build(BuildContext context) {
-    return Column(
+    final content = Column(
       crossAxisAlignment:
           alignEnd ? CrossAxisAlignment.end : CrossAxisAlignment.start,
       children: [
-        _TeamLogo(url: logo),
+        _TeamLogo(url: team.logo),
         const SizedBox(height: AppSpacing.xs),
         Text(
-          name,
+          team.name ?? (alignEnd ? 'Exterieur' : 'Domicile'),
           maxLines: 2,
           overflow: TextOverflow.ellipsis,
           textAlign: alignEnd ? TextAlign.right : TextAlign.left,
@@ -436,9 +447,19 @@ class _FixtureTeamColumn extends StatelessWidget {
                 color: AppColors.white,
                 fontWeight: FontWeight.w900,
                 height: 1.1,
-              ),
+          ),
         ),
       ],
+    );
+
+    if (routeName == null) {
+      return content;
+    }
+
+    return GestureDetector(
+      behavior: HitTestBehavior.opaque,
+      onTap: () => Navigator.of(context).pushNamed(routeName!),
+      child: content,
     );
   }
 }

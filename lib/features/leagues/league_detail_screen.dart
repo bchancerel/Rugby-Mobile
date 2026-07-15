@@ -9,9 +9,12 @@ import 'package:rugby_jam_mobile/core/widgets/app_skeleton_block.dart';
 import 'package:rugby_jam_mobile/core/widgets/app_state_panel.dart';
 import 'package:rugby_jam_mobile/features/auth/data/auth_api_client.dart';
 import 'package:rugby_jam_mobile/features/dashboard/data/dashboard_models.dart';
+import 'package:rugby_jam_mobile/features/favorites/data/favorites_models.dart';
+import 'package:rugby_jam_mobile/features/favorites/data/favorites_repository.dart';
 import 'package:rugby_jam_mobile/features/leagues/data/leagues_models.dart';
 import 'package:rugby_jam_mobile/features/leagues/data/leagues_repository.dart';
 import 'package:rugby_jam_mobile/features/rugby/rugby_fixture_utils.dart';
+import 'package:rugby_jam_mobile/features/supporter/data/supporter_tracking.dart';
 
 part 'league_detail/overview_widgets.dart';
 part 'league_detail/standings_section.dart';
@@ -19,6 +22,22 @@ part 'league_detail/matches_section.dart';
 part 'league_detail/bracket_section.dart';
 part 'league_detail/state_widgets.dart';
 part 'league_detail/fixture_rounds.dart';
+
+String? _teamDetailRoute({
+  required int? teamId,
+  required int? leagueId,
+  required int? season,
+}) {
+  if (teamId == null) {
+    return null;
+  }
+
+  if (leagueId == null || season == null) {
+    return '${AppRoutes.teams}/$teamId';
+  }
+
+  return '${AppRoutes.teams}/$teamId?league=$leagueId&season=$season';
+}
 
 enum _LeagueDetailTab {
   standings,
@@ -42,24 +61,29 @@ class LeagueDetailScreen extends StatefulWidget {
 
 class _LeagueDetailScreenState extends State<LeagueDetailScreen> {
   final _repository = LeaguesRepository();
+  final _favoritesRepository = FavoritesRepository();
 
   RugbyLeagueOverview? _overview;
+  FavoriteCollection _competitionFavorites = const FavoriteCollection.empty();
   String _errorMessage = '';
   int? _selectedSeason;
   _LeagueDetailTab _selectedTab = _LeagueDetailTab.standings;
   bool _loading = true;
   bool _refreshing = false;
+  bool _favoritePending = false;
 
   @override
   void initState() {
     super.initState();
     _selectedSeason = widget.initialSeason;
+    SupporterTracking.trackCompetitionViewed(widget.leagueId);
     _loadOverview();
   }
 
   @override
   void dispose() {
     _repository.close();
+    _favoritesRepository.close();
     super.dispose();
   }
 
@@ -74,10 +98,12 @@ class _LeagueDetailScreenState extends State<LeagueDetailScreen> {
     });
 
     try {
+      final favoritesFuture = _loadCompetitionFavoritesSafely();
       final overview = await _repository.fetchLeagueOverview(
         widget.leagueId,
         season: _selectedSeason,
       );
+      final favoritesResult = await favoritesFuture;
 
       if (!mounted) {
         return;
@@ -85,6 +111,10 @@ class _LeagueDetailScreenState extends State<LeagueDetailScreen> {
 
       setState(() {
         _overview = overview;
+        if (favoritesResult.favorites != null) {
+          _competitionFavorites = favoritesResult.favorites!.competitions;
+        }
+        _errorMessage = favoritesResult.errorMessage;
         _selectedSeason ??= overview?.season;
         if (overview != null &&
             _selectedTab == _LeagueDetailTab.bracket &&
@@ -214,7 +244,16 @@ class _LeagueDetailScreenState extends State<LeagueDetailScreen> {
                           AppInlineAlert(message: _errorMessage),
                           const SizedBox(height: AppSpacing.md),
                         ],
-                        _LeagueHero(overview: overview),
+                        _LeagueHero(
+                          overview: overview,
+                          favorite: _findCompetitionFavorite(overview.league),
+                          favoriteLimit: _competitionFavorites.limit,
+                          favoriteCount: _competitionFavorites.total,
+                          favoritePending: _favoritePending,
+                          onToggleFavorite: () => _toggleCompetitionFavorite(
+                            overview.league,
+                          ),
+                        ),
                         const SizedBox(height: AppSpacing.md),
                         _SeasonSelector(
                           seasons: overview.seasonOptions,
@@ -242,4 +281,124 @@ class _LeagueDetailScreenState extends State<LeagueDetailScreen> {
       ),
     );
   }
+
+  Favorite? _findCompetitionFavorite(RugbyLeague league) {
+    final id = league.id;
+    if (id == null) {
+      return null;
+    }
+
+    final entityId = id.toString();
+    for (final favorite in _competitionFavorites.data) {
+      if (favorite.entityId == entityId) {
+        return favorite;
+      }
+    }
+
+    return null;
+  }
+
+  Future<void> _toggleCompetitionFavorite(RugbyLeague league) async {
+    final id = league.id;
+    if (id == null || _favoritePending) {
+      return;
+    }
+
+    final existingFavorite = _findCompetitionFavorite(league);
+    final limitReached = existingFavorite == null &&
+        _competitionFavorites.total >= _competitionFavorites.limit;
+
+    if (limitReached) {
+      _showSnackBar(
+        'Limite de ${_competitionFavorites.limit} favoris atteinte.',
+      );
+      return;
+    }
+
+    setState(() {
+      _favoritePending = true;
+      _errorMessage = '';
+    });
+
+    try {
+      if (existingFavorite == null) {
+        await _favoritesRepository.addCompetitionFavorite(
+          leagueId: id,
+          leagueName: league.displayName,
+        );
+      } else {
+        await _favoritesRepository.removeFavorite(existingFavorite.id);
+      }
+
+      final favorites = await _favoritesRepository.fetchFavorites();
+
+      if (!mounted) {
+        return;
+      }
+
+      setState(() {
+        _competitionFavorites = favorites.competitions;
+      });
+      _showSnackBar(
+        existingFavorite == null ? 'Favori ajoute.' : 'Favori retire.',
+      );
+    } on AuthApiException catch (error) {
+      if (!mounted) {
+        return;
+      }
+
+      setState(() {
+        _errorMessage = error.message;
+      });
+      _showSnackBar(error.message);
+    } catch (_) {
+      if (!mounted) {
+        return;
+      }
+
+      const message = 'Impossible de mettre a jour ce favori.';
+      setState(() {
+        _errorMessage = message;
+      });
+      _showSnackBar(message);
+    } finally {
+      if (mounted) {
+        setState(() {
+          _favoritePending = false;
+        });
+      }
+    }
+  }
+
+  Future<_CompetitionFavoritesLoadResult> _loadCompetitionFavoritesSafely()
+      async {
+    try {
+      final favorites = await _favoritesRepository.fetchFavorites();
+      return _CompetitionFavoritesLoadResult(favorites: favorites);
+    } on AuthApiException catch (error) {
+      return _CompetitionFavoritesLoadResult(errorMessage: error.message);
+    } catch (_) {
+      return const _CompetitionFavoritesLoadResult(
+        errorMessage: 'Impossible de charger les favoris.',
+      );
+    }
+  }
+
+  void _showSnackBar(String message) {
+    ScaffoldMessenger.of(context)
+      ..hideCurrentSnackBar()
+      ..showSnackBar(
+        SnackBar(content: Text(message)),
+      );
+  }
+}
+
+class _CompetitionFavoritesLoadResult {
+  const _CompetitionFavoritesLoadResult({
+    this.favorites,
+    this.errorMessage = '',
+  });
+
+  final FavoritesResponse? favorites;
+  final String errorMessage;
 }

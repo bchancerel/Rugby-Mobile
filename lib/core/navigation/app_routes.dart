@@ -12,6 +12,8 @@ import 'package:rugby_jam_mobile/features/leagues/league_detail_screen.dart';
 import 'package:rugby_jam_mobile/features/leagues/leagues_screen.dart';
 import 'package:rugby_jam_mobile/features/placeholders/route_placeholder_screen.dart';
 import 'package:rugby_jam_mobile/features/supporter/supporter_screen.dart';
+import 'package:rugby_jam_mobile/features/supporter/data/supporter_tracking.dart';
+import 'package:rugby_jam_mobile/features/teams/team_detail_screen.dart';
 import 'package:rugby_jam_mobile/features/user/user_account_screen.dart';
 
 class AppRoutes {
@@ -87,6 +89,7 @@ class AppRoutes {
     }
 
     if (_isMatchDetailRoute(routeName)) {
+      SupporterTracking.trackMatchViewed(_matchIdFromRoute(routeName));
       return RoutePlaceholderScreen(
         title: 'Detail du match',
         routeName: routeName,
@@ -96,11 +99,10 @@ class AppRoutes {
     }
 
     if (_isTeamDetailRoute(routeName)) {
-      return RoutePlaceholderScreen(
-        title: 'Equipe',
-        routeName: routeName,
-        icon: Icons.groups,
-        showBottomNav: true,
+      return TeamDetailScreen(
+        teamId: _teamIdFromRoute(routeName),
+        initialLeagueId: int.tryParse(queryParameters['league'] ?? ''),
+        initialSeason: int.tryParse(queryParameters['season'] ?? ''),
       );
     }
 
@@ -256,9 +258,19 @@ class AppRoutes {
         routeName.length > matches.length + 1;
   }
 
+  static int _matchIdFromRoute(String routeName) {
+    final rawId = routeName.substring(matches.length + 1);
+    return int.tryParse(rawId) ?? 0;
+  }
+
   static bool _isTeamDetailRoute(String routeName) {
     return routeName.startsWith('$teams/') &&
         routeName.length > teams.length + 1;
+  }
+
+  static int _teamIdFromRoute(String routeName) {
+    final rawId = routeName.substring(teams.length + 1);
+    return int.tryParse(rawId) ?? 0;
   }
 
   static bool _isBottomNavRoute(String routeName) {
@@ -266,6 +278,7 @@ class AppRoutes {
         routeName == leagues ||
         _isLeagueDetailRoute(routeName) ||
         routeName == matches ||
+        _isTeamDetailRoute(routeName) ||
         routeName == actualites ||
         routeName == supporter ||
         routeName == user;

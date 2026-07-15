@@ -71,9 +71,12 @@ class _BracketMatchCard extends StatelessWidget {
     return GestureDetector(
       behavior: HitTestBehavior.opaque,
       onTap: canOpenMatch
-          ? () => Navigator.of(context).pushNamed(
+          ? () {
+              SupporterTracking.trackFixtureOpened(fixture);
+              Navigator.of(context).pushNamed(
                 '${AppRoutes.matches}/${fixture.id}',
-              )
+              );
+            }
           : null,
       child: DecoratedBox(
         decoration: BoxDecoration(
@@ -103,12 +106,22 @@ class _BracketMatchCard extends StatelessWidget {
               ),
               const SizedBox(height: AppSpacing.md),
               _BracketTeamLine(
-                name: fixture.teams.home.name ?? 'Domicile',
+                team: fixture.teams.home,
+                routeName: _teamDetailRoute(
+                  teamId: fixture.teams.home.id,
+                  leagueId: fixture.league.id,
+                  season: fixture.league.season,
+                ),
                 score: fixture.score.home,
               ),
               const SizedBox(height: AppSpacing.xs),
               _BracketTeamLine(
-                name: fixture.teams.away.name ?? 'Exterieur',
+                team: fixture.teams.away,
+                routeName: _teamDetailRoute(
+                  teamId: fixture.teams.away.id,
+                  leagueId: fixture.league.id,
+                  season: fixture.league.season,
+                ),
                 score: fixture.score.away,
               ),
             ],
@@ -121,20 +134,24 @@ class _BracketMatchCard extends StatelessWidget {
 
 class _BracketTeamLine extends StatelessWidget {
   const _BracketTeamLine({
-    required this.name,
+    required this.team,
+    required this.routeName,
     required this.score,
   });
 
-  final String name;
+  final RugbyFixtureTeam team;
+  final String? routeName;
   final int? score;
 
   @override
   Widget build(BuildContext context) {
-    return Row(
+    final teamIdentity = Row(
       children: [
+        _TeamLogo(url: team.logo),
+        const SizedBox(width: AppSpacing.sm),
         Expanded(
           child: Text(
-            name,
+            team.name ?? 'Equipe',
             maxLines: 1,
             overflow: TextOverflow.ellipsis,
             style: Theme.of(context).textTheme.bodyMedium?.copyWith(
@@ -142,6 +159,20 @@ class _BracketTeamLine extends StatelessWidget {
                   fontWeight: FontWeight.w900,
                 ),
           ),
+        ),
+      ],
+    );
+
+    return Row(
+      children: [
+        Expanded(
+          child: routeName == null
+              ? teamIdentity
+              : GestureDetector(
+                  behavior: HitTestBehavior.opaque,
+                  onTap: () => Navigator.of(context).pushNamed(routeName!),
+                  child: teamIdentity,
+                ),
         ),
         const SizedBox(width: AppSpacing.md),
         Text(

@@ -56,9 +56,12 @@ class _MatchCard extends StatelessWidget {
 
     final onTap = fixture.id == null
         ? null
-        : () => Navigator.of(context).pushNamed(
+        : () {
+            SupporterTracking.trackFixtureOpened(fixture);
+            Navigator.of(context).pushNamed(
               '${AppRoutes.matches}/${fixture.id}',
             );
+          };
 
     return Padding(
       padding: const EdgeInsets.only(bottom: AppSpacing.sm),
@@ -105,7 +108,15 @@ class _MatchCard extends StatelessWidget {
                   const SizedBox(height: AppSpacing.md),
                   Row(
                     children: [
-                      Expanded(child: _TeamName(team: fixture.teams.home)),
+                      Expanded(
+                        child: _TeamName(
+                          team: fixture.teams.home,
+                          routeName: _teamRouteForFixture(
+                            fixture,
+                            fixture.teams.home,
+                          ),
+                        ),
+                      ),
                       Padding(
                         padding: const EdgeInsets.symmetric(
                           horizontal: AppSpacing.sm,
@@ -118,6 +129,10 @@ class _MatchCard extends StatelessWidget {
                       Expanded(
                         child: _TeamName(
                           team: fixture.teams.away,
+                          routeName: _teamRouteForFixture(
+                            fixture,
+                            fixture.teams.away,
+                          ),
                           textAlign: TextAlign.right,
                         ),
                       ),
@@ -143,22 +158,66 @@ class _MatchCard extends StatelessWidget {
 class _TeamName extends StatelessWidget {
   const _TeamName({
     required this.team,
+    required this.routeName,
     this.textAlign = TextAlign.left,
   });
 
   final RugbyFixtureTeam team;
+  final String? routeName;
   final TextAlign textAlign;
 
   @override
   Widget build(BuildContext context) {
-    return Text(
-      team.name ?? 'Equipe',
-      maxLines: 2,
-      overflow: TextOverflow.ellipsis,
-      textAlign: textAlign,
-      style: Theme.of(context).textTheme.bodyLarge,
+    final alignEnd = textAlign == TextAlign.right;
+    final content = Row(
+      mainAxisAlignment:
+          alignEnd ? MainAxisAlignment.end : MainAxisAlignment.start,
+      children: [
+        if (!alignEnd) ...[
+          _TeamLogo(url: team.logo),
+          const SizedBox(width: AppSpacing.xs),
+        ],
+        Flexible(
+          child: Text(
+            team.name ?? 'Equipe',
+            maxLines: 2,
+            overflow: TextOverflow.ellipsis,
+            textAlign: textAlign,
+            style: Theme.of(context).textTheme.bodyLarge,
+          ),
+        ),
+        if (alignEnd) ...[
+          const SizedBox(width: AppSpacing.xs),
+          _TeamLogo(url: team.logo),
+        ],
+      ],
+    );
+
+    if (routeName == null) {
+      return content;
+    }
+
+    return GestureDetector(
+      behavior: HitTestBehavior.opaque,
+      onTap: () => Navigator.of(context).pushNamed(routeName!),
+      child: content,
     );
   }
+}
+
+String? _teamRouteForFixture(RugbyFixture fixture, RugbyFixtureTeam team) {
+  final teamId = team.id;
+  if (teamId == null) {
+    return null;
+  }
+
+  final leagueId = fixture.league.id;
+  final season = fixture.league.season;
+  if (leagueId == null || season == null) {
+    return '${AppRoutes.teams}/$teamId';
+  }
+
+  return '${AppRoutes.teams}/$teamId?league=$leagueId&season=$season';
 }
 
 class _RemoteLogo extends StatelessWidget {
@@ -174,25 +233,55 @@ class _RemoteLogo extends StatelessWidget {
   Widget build(BuildContext context) {
     final imageUrl = url;
 
-    return ClipRRect(
-      borderRadius: BorderRadius.circular(8),
-      child: DecoratedBox(
-        decoration: const BoxDecoration(color: AppColors.white),
-        child: SizedBox(
-          width: 44,
-          height: 44,
-          child: imageUrl == null || imageUrl.isEmpty
-              ? Icon(icon, color: AppColors.primary)
-              : Image.network(
-                  imageUrl,
-                  fit: BoxFit.contain,
-                  errorBuilder: (_, _, _) => Icon(
-                    icon,
-                    color: AppColors.primary,
-                  ),
+    return SizedBox(
+      width: 44,
+      height: 44,
+      child: Padding(
+        padding: const EdgeInsets.all(3),
+        child: imageUrl == null || imageUrl.isEmpty
+            ? Icon(icon, color: AppColors.primary)
+            : Image.network(
+                imageUrl,
+                fit: BoxFit.contain,
+                errorBuilder: (_, _, _) => Icon(
+                  icon,
+                  color: AppColors.primary,
                 ),
-        ),
+              ),
       ),
+    );
+  }
+}
+
+class _TeamLogo extends StatelessWidget {
+  const _TeamLogo({required this.url});
+
+  final String? url;
+
+  @override
+  Widget build(BuildContext context) {
+    final imageUrl = url;
+
+    return SizedBox(
+      width: 28,
+      height: 28,
+      child: imageUrl == null || imageUrl.isEmpty
+          ? const Icon(
+              Icons.shield_outlined,
+              color: AppColors.primary,
+              size: 22,
+            )
+          : Image.network(
+              imageUrl,
+              fit: BoxFit.contain,
+              errorBuilder: (_, _, _) {
+                return const Icon(
+                  Icons.shield_outlined,
+                  color: AppColors.primary,
+                  size: 22,
+                );
+              },
+            ),
     );
   }
 }

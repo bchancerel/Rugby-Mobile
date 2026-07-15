@@ -11,7 +11,6 @@ import 'package:rugby_jam_mobile/features/auth/data/auth_api_client.dart';
 import 'package:rugby_jam_mobile/features/leagues/data/leagues_models.dart';
 import 'package:rugby_jam_mobile/features/leagues/data/leagues_repository.dart';
 
-
 part 'leagues/summary_sections.dart';
 part 'leagues/filters.dart';
 part 'leagues/catalog_sections.dart';

@@ -1,6 +1,7 @@
 import 'package:rugby_jam_mobile/core/network/api_client.dart';
 import 'package:rugby_jam_mobile/features/auth/data/auth_session_manager.dart';
 import 'package:rugby_jam_mobile/features/dashboard/data/dashboard_models.dart';
+import 'package:rugby_jam_mobile/features/favorites/data/favorites_models.dart';
 
 class DashboardRepository {
   DashboardRepository({
@@ -19,15 +20,17 @@ class DashboardRepository {
   Future<DashboardData> fetchDashboard() async {
     return _sessionManager.runAuthenticated(
       (accessToken) async {
-        final favoritesJson = await _apiClient.getJson(
+        final favoritesFuture = _apiClient.getJson(
           '/favorites',
           accessToken: accessToken,
         );
-        final matchesJson = await _apiClient.getJson(
+        final matchesFuture = _apiClient.getJson(
           '/rugby/matches/home',
           accessToken: accessToken,
           queryParameters: const {'includeGlobalFixtures': '0'},
         );
+        final favoritesJson = await favoritesFuture;
+        final matchesJson = await matchesFuture;
 
         return DashboardData(
           favorites: FavoritesResponse.fromJson(favoritesJson),

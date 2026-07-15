@@ -31,9 +31,21 @@ class _LeagueDetailHeader extends StatelessWidget {
 }
 
 class _LeagueHero extends StatelessWidget {
-  const _LeagueHero({required this.overview});
+  const _LeagueHero({
+    required this.overview,
+    required this.favorite,
+    required this.favoriteLimit,
+    required this.favoriteCount,
+    required this.favoritePending,
+    required this.onToggleFavorite,
+  });
 
   final RugbyLeagueOverview overview;
+  final Favorite? favorite;
+  final int favoriteLimit;
+  final int favoriteCount;
+  final bool favoritePending;
+  final VoidCallback onToggleFavorite;
 
   @override
   Widget build(BuildContext context) {
@@ -41,6 +53,8 @@ class _LeagueHero extends StatelessWidget {
       0,
       (total, group) => total + group.rows.length,
     );
+    final favoriteActive = favorite != null;
+    final limitReached = !favoriteActive && favoriteCount >= favoriteLimit;
 
     return ClipRRect(
       borderRadius: BorderRadius.circular(28),
@@ -118,6 +132,13 @@ class _LeagueHero extends StatelessWidget {
                         ),
                       ],
                     ),
+                    const SizedBox(height: AppSpacing.md),
+                    _LeagueFavoriteButton(
+                      active: favoriteActive,
+                      pending: favoritePending,
+                      limitReached: limitReached,
+                      onPressed: onToggleFavorite,
+                    ),
                   ],
                 ),
               ),
@@ -125,6 +146,63 @@ class _LeagueHero extends StatelessWidget {
           ),
         ),
       ),
+    );
+  }
+}
+
+class _LeagueFavoriteButton extends StatelessWidget {
+  const _LeagueFavoriteButton({
+    required this.active,
+    required this.pending,
+    required this.limitReached,
+    required this.onPressed,
+  });
+
+  final bool active;
+  final bool pending;
+  final bool limitReached;
+  final VoidCallback onPressed;
+
+  @override
+  Widget build(BuildContext context) {
+    final label = active
+        ? 'Retirer des favoris'
+        : limitReached
+            ? 'Limite de favoris atteinte'
+            : 'Ajouter aux favoris';
+
+    return Align(
+      alignment: Alignment.centerLeft,
+      child: TextButton.icon(
+        onPressed: pending ? null : onPressed,
+        icon: pending
+            ? const SizedBox(
+                width: 18,
+                height: 18,
+                child: CircularProgressIndicator(
+                  strokeWidth: 2,
+                  color: AppColors.white,
+                ),
+              )
+            : Icon(active ? Icons.star : Icons.star_border),
+        label: Text(label),
+        style: TextButton.styleFrom(
+          foregroundColor: active ? const Color(0xFFFFD166) : AppColors.white,
+          disabledForegroundColor: AppColors.grayCool,
+          backgroundColor: const Color(0xA6020617),
+          padding: const EdgeInsets.symmetric(
+            horizontal: AppSpacing.md,
+            vertical: AppSpacing.sm,
+          ),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(999),
+            side: const BorderSide(color: AppColors.border),
+          ),
+          textStyle: Theme.of(context).textTheme.labelLarge?.copyWith(
+                fontWeight: FontWeight.w900,
+              ),
+          ),
+        ),
     );
   }
 }
@@ -178,7 +256,7 @@ class _LeagueLogo extends StatelessWidget {
   Widget build(BuildContext context) {
     return DecoratedBox(
       decoration: BoxDecoration(
-        color: const Color(0xFFF4F7FB),
+        color: const Color(0xFFCBD5E1),
         borderRadius: BorderRadius.circular(24),
         boxShadow: const [
           BoxShadow(

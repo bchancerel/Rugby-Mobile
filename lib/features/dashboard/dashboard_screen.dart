@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:rugby_jam_mobile/core/navigation/app_routes.dart';
 import 'package:rugby_jam_mobile/core/theme/app_colors.dart';
@@ -8,7 +10,9 @@ import 'package:rugby_jam_mobile/features/auth/data/auth_api_client.dart';
 import 'package:rugby_jam_mobile/features/auth/data/auth_session_manager.dart';
 import 'package:rugby_jam_mobile/features/dashboard/data/dashboard_models.dart';
 import 'package:rugby_jam_mobile/features/dashboard/data/dashboard_repository.dart';
+import 'package:rugby_jam_mobile/features/favorites/data/favorites_models.dart';
 import 'package:rugby_jam_mobile/features/rugby/rugby_fixture_utils.dart';
+import 'package:rugby_jam_mobile/features/supporter/data/supporter_tracking.dart';
 
 part 'dashboard/header_summary.dart';
 part 'dashboard/favorites_preview.dart';

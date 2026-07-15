@@ -24,7 +24,10 @@ class _StandingsSection extends StatelessWidget {
       key: const ValueKey('standings'),
       children: [
         for (final entry in groups.asMap().entries) ...[
-          _StandingGroupSection(group: entry.value),
+          _StandingGroupSection(
+            group: entry.value,
+            overview: overview,
+          ),
           if (entry.key != groups.length - 1)
             const SizedBox(height: AppSpacing.md),
         ],
@@ -34,9 +37,13 @@ class _StandingsSection extends StatelessWidget {
 }
 
 class _StandingGroupSection extends StatelessWidget {
-  const _StandingGroupSection({required this.group});
+  const _StandingGroupSection({
+    required this.group,
+    required this.overview,
+  });
 
   final RugbyStandingGroup group;
+  final RugbyLeagueOverview overview;
 
   @override
   Widget build(BuildContext context) {
@@ -69,7 +76,11 @@ class _StandingGroupSection extends StatelessWidget {
               ],
             ),
             const SizedBox(height: AppSpacing.md),
-            for (final row in group.rows) _StandingRow(row: row),
+            for (final row in group.rows)
+              _StandingRow(
+                row: row,
+                overview: overview,
+              ),
           ],
         ),
       ),
@@ -78,9 +89,13 @@ class _StandingGroupSection extends StatelessWidget {
 }
 
 class _StandingRow extends StatelessWidget {
-  const _StandingRow({required this.row});
+  const _StandingRow({
+    required this.row,
+    required this.overview,
+  });
 
   final RugbyStanding row;
+  final RugbyLeagueOverview overview;
 
   @override
   Widget build(BuildContext context) {
@@ -110,32 +125,14 @@ class _StandingRow extends StatelessWidget {
                 ),
               ),
               const SizedBox(width: AppSpacing.sm),
-              _TeamLogo(url: row.team.logo),
-              const SizedBox(width: AppSpacing.sm),
               Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      row.team.displayName,
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                      style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                            color: AppColors.white,
-                            fontWeight: FontWeight.w900,
-                          ),
-                    ),
-                    const SizedBox(height: 2),
-                    Text(
-                      _standingMeta(row),
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                      style: Theme.of(context).textTheme.labelMedium?.copyWith(
-                            color: AppColors.grayCool,
-                            fontWeight: FontWeight.w700,
-                          ),
-                    ),
-                  ],
+                child: _StandingTeamCell(
+                  row: row,
+                  routeName: _teamDetailRoute(
+                    teamId: row.team.id,
+                    leagueId: overview.league.id,
+                    season: overview.season,
+                  ),
                 ),
               ),
               const SizedBox(width: AppSpacing.sm),
@@ -165,6 +162,62 @@ class _StandingRow extends StatelessWidget {
     );
   }
 
+}
+
+class _StandingTeamCell extends StatelessWidget {
+  const _StandingTeamCell({
+    required this.row,
+    required this.routeName,
+  });
+
+  final RugbyStanding row;
+  final String? routeName;
+
+  @override
+  Widget build(BuildContext context) {
+    final teamIdentity = Row(
+      children: [
+        _TeamLogo(url: row.team.logo),
+        const SizedBox(width: AppSpacing.sm),
+        Flexible(
+          child: Text(
+            row.team.displayName,
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+            style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                  color: AppColors.white,
+                  fontWeight: FontWeight.w900,
+                ),
+          ),
+        ),
+      ],
+    );
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        if (routeName == null)
+          teamIdentity
+        else
+          GestureDetector(
+            behavior: HitTestBehavior.opaque,
+            onTap: () => Navigator.of(context).pushNamed(routeName!),
+            child: teamIdentity,
+          ),
+        const SizedBox(height: 2),
+        Text(
+          _standingMeta(row),
+          maxLines: 1,
+          overflow: TextOverflow.ellipsis,
+          style: Theme.of(context).textTheme.labelMedium?.copyWith(
+                color: AppColors.grayCool,
+                fontWeight: FontWeight.w700,
+              ),
+        ),
+      ],
+    );
+  }
+
   String _standingMeta(RugbyStanding row) {
     final played = row.all.played ?? 0;
     final wins = row.all.win ?? 0;
@@ -184,34 +237,28 @@ class _TeamLogo extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return DecoratedBox(
-      decoration: BoxDecoration(
-        color: const Color(0xFFF4F7FB),
-        borderRadius: BorderRadius.circular(12),
-      ),
-      child: SizedBox(
-        width: 34,
-        height: 34,
-        child: Padding(
-          padding: const EdgeInsets.all(4),
-          child: url == null
-              ? const Icon(
-                  Icons.shield_outlined,
-                  color: AppColors.red,
-                  size: 18,
-                )
-              : Image.network(
-                  url!,
-                  fit: BoxFit.contain,
-                  errorBuilder: (context, error, stackTrace) {
-                    return const Icon(
-                      Icons.shield_outlined,
-                      color: AppColors.red,
-                      size: 18,
-                    );
-                  },
-                ),
-        ),
+    return SizedBox(
+      width: 34,
+      height: 34,
+      child: Padding(
+        padding: const EdgeInsets.all(3),
+        child: url == null
+            ? const Icon(
+                Icons.shield_outlined,
+                color: AppColors.red,
+                size: 20,
+              )
+            : Image.network(
+                url!,
+                fit: BoxFit.contain,
+                errorBuilder: (context, error, stackTrace) {
+                  return const Icon(
+                    Icons.shield_outlined,
+                    color: AppColors.red,
+                    size: 20,
+                  );
+                },
+              ),
       ),
     );
   }

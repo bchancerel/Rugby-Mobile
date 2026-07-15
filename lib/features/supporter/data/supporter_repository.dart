@@ -28,4 +28,34 @@ class SupporterRepository {
       },
     );
   }
+
+  Future<SupporterEvent> recordEvent({
+    required String type,
+    String? entityType,
+    String? entityId,
+    Map<String, dynamic>? metadata,
+  }) {
+    return _sessionManager.runAuthenticated(
+      (accessToken) async {
+        final body = <String, dynamic>{
+          'type': type,
+          if (entityType != null) 'entityType': entityType,
+          if (entityId != null) 'entityId': entityId,
+          if (metadata != null) 'metadata': metadata,
+        };
+        final json = await _apiClient.postJson(
+          '/supporter/events',
+          accessToken: accessToken,
+          body: body,
+        );
+        final event = SupporterEvent.fromJson(json);
+
+        if (event == null) {
+          throw StateError('Reponse evenement supporter invalide.');
+        }
+
+        return event;
+      },
+    );
+  }
 }

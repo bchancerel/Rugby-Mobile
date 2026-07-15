@@ -151,9 +151,7 @@ class _CountryGroupBlockState extends State<_CountryGroupBlock> {
           child: _expanded
               ? Padding(
                   padding: const EdgeInsets.only(top: AppSpacing.sm),
-                  child: _LeagueTileGrid(
-                    leagues: group.leagues,
-                  ),
+                  child: _LeagueTileGrid(leagues: group.leagues),
                 )
               : const SizedBox(width: double.infinity),
         ),
@@ -163,9 +161,7 @@ class _CountryGroupBlockState extends State<_CountryGroupBlock> {
 }
 
 class _LeagueTileGrid extends StatelessWidget {
-  const _LeagueTileGrid({
-    required this.leagues,
-  });
+  const _LeagueTileGrid({required this.leagues});
 
   final List<RugbyLeague> leagues;
 
@@ -405,8 +401,8 @@ class _LeagueLogo extends StatelessWidget {
 
     return DecoratedBox(
       decoration: BoxDecoration(
-        color: const Color(0xE6F8FAFC),
-        border: Border.all(color: const Color(0x66FFFFFF)),
+        color: const Color(0xE6CBD5E1),
+        border: Border.all(color: const Color(0x4DFFFFFF)),
         borderRadius: BorderRadius.circular(8),
       ),
       child: SizedBox(
