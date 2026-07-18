@@ -1,10 +1,7 @@
 import 'package:rugby_jam_mobile/features/favorites/data/favorites_models.dart';
 
 class DashboardData {
-  const DashboardData({
-    required this.favorites,
-    required this.matchesHome,
-  });
+  const DashboardData({required this.favorites, required this.matchesHome});
 
   final FavoritesResponse favorites;
   final RugbyMatchesHome matchesHome;
@@ -13,12 +10,14 @@ class DashboardData {
       favorites.teams.total > 0 || favorites.competitions.total > 0;
 
   List<RugbyFavoriteMatch> get teamUpcomingMatches {
-    final matches = matchesHome.favoriteMatches
-        .where((match) => match.type == 'team' && match.nextFixture != null)
-        .toList()
-      ..sort(
-        (a, b) => a.nextFixture!.sortTime.compareTo(b.nextFixture!.sortTime),
-      );
+    final matches =
+        matchesHome.favoriteMatches
+            .where((match) => match.type == 'team' && match.nextFixture != null)
+            .toList()
+          ..sort(
+            (a, b) =>
+                a.nextFixture!.sortTime.compareTo(b.nextFixture!.sortTime),
+          );
 
     return matches.take(4).toList();
   }
@@ -91,17 +90,23 @@ class RugbyFixture {
     this.id,
     this.date,
     this.timestamp,
+    this.timezone,
+    required this.status,
     required this.league,
     required this.teams,
     required this.score,
+    required this.periods,
   });
 
   final int? id;
   final String? date;
   final int? timestamp;
+  final String? timezone;
+  final RugbyFixtureStatus status;
   final RugbyFixtureLeague league;
   final RugbyFixtureTeams teams;
   final RugbyFixtureScore score;
+  final RugbyFixturePeriods periods;
 
   int get sortTime {
     if (timestamp != null) {
@@ -121,9 +126,30 @@ class RugbyFixture {
       id: _readNullableInt(json['id']),
       date: _readNullableString(json['date']),
       timestamp: _readNullableInt(json['timestamp']),
+      timezone: _readNullableString(json['timezone']),
+      status: RugbyFixtureStatus.fromJson(json['status']),
       league: RugbyFixtureLeague.fromJson(json['league']),
       teams: RugbyFixtureTeams.fromJson(json['teams']),
       score: RugbyFixtureScore.fromJson(json['score']),
+      periods: RugbyFixturePeriods.fromJson(json['periods']),
+    );
+  }
+}
+
+class RugbyFixtureStatus {
+  const RugbyFixtureStatus({this.long, this.short, this.elapsed});
+
+  final String? long;
+  final String? short;
+  final int? elapsed;
+
+  factory RugbyFixtureStatus.fromJson(Object? json) {
+    final map = json is Map<String, dynamic> ? json : const <String, dynamic>{};
+
+    return RugbyFixtureStatus(
+      long: _readNullableString(map['long']),
+      short: _readNullableString(map['short']),
+      elapsed: _readNullableInt(map['elapsed']),
     );
   }
 }
@@ -157,10 +183,7 @@ class RugbyFixtureLeague {
 }
 
 class RugbyFixtureTeams {
-  const RugbyFixtureTeams({
-    required this.home,
-    required this.away,
-  });
+  const RugbyFixtureTeams({required this.home, required this.away});
 
   final RugbyFixtureTeam home;
   final RugbyFixtureTeam away;
@@ -176,15 +199,12 @@ class RugbyFixtureTeams {
 }
 
 class RugbyFixtureTeam {
-  const RugbyFixtureTeam({
-    this.id,
-    this.name,
-    this.logo,
-  });
+  const RugbyFixtureTeam({this.id, this.name, this.logo, this.winner});
 
   final int? id;
   final String? name;
   final String? logo;
+  final bool? winner;
 
   factory RugbyFixtureTeam.fromJson(Object? json) {
     final map = json is Map<String, dynamic> ? json : const <String, dynamic>{};
@@ -193,15 +213,13 @@ class RugbyFixtureTeam {
       id: _readNullableInt(map['id']),
       name: _readNullableString(map['name']),
       logo: _readNullableString(map['logo']),
+      winner: _readNullableBool(map['winner']),
     );
   }
 }
 
 class RugbyFixtureScore {
-  const RugbyFixtureScore({
-    this.home,
-    this.away,
-  });
+  const RugbyFixtureScore({this.home, this.away});
 
   final int? home;
   final int? away;
@@ -210,6 +228,47 @@ class RugbyFixtureScore {
     final map = json is Map<String, dynamic> ? json : const <String, dynamic>{};
 
     return RugbyFixtureScore(
+      home: _readNullableInt(map['home']),
+      away: _readNullableInt(map['away']),
+    );
+  }
+}
+
+class RugbyFixturePeriods {
+  const RugbyFixturePeriods({
+    required this.first,
+    required this.second,
+    required this.overtime,
+    required this.secondOvertime,
+  });
+
+  final RugbyFixturePeriodScore first;
+  final RugbyFixturePeriodScore second;
+  final RugbyFixturePeriodScore overtime;
+  final RugbyFixturePeriodScore secondOvertime;
+
+  factory RugbyFixturePeriods.fromJson(Object? json) {
+    final map = json is Map<String, dynamic> ? json : const <String, dynamic>{};
+
+    return RugbyFixturePeriods(
+      first: RugbyFixturePeriodScore.fromJson(map['first']),
+      second: RugbyFixturePeriodScore.fromJson(map['second']),
+      overtime: RugbyFixturePeriodScore.fromJson(map['overtime']),
+      secondOvertime: RugbyFixturePeriodScore.fromJson(map['secondOvertime']),
+    );
+  }
+}
+
+class RugbyFixturePeriodScore {
+  const RugbyFixturePeriodScore({this.home, this.away});
+
+  final int? home;
+  final int? away;
+
+  factory RugbyFixturePeriodScore.fromJson(Object? json) {
+    final map = json is Map<String, dynamic> ? json : const <String, dynamic>{};
+
+    return RugbyFixturePeriodScore(
       home: _readNullableInt(map['home']),
       away: _readNullableInt(map['away']),
     );
@@ -252,6 +311,24 @@ int? _readNullableInt(Object? value) {
 
   if (value is String) {
     return int.tryParse(value);
+  }
+
+  return null;
+}
+
+bool? _readNullableBool(Object? value) {
+  if (value is bool) {
+    return value;
+  }
+
+  if (value is String) {
+    final normalized = value.toLowerCase();
+    if (normalized == 'true') {
+      return true;
+    }
+    if (normalized == 'false') {
+      return false;
+    }
   }
 
   return null;

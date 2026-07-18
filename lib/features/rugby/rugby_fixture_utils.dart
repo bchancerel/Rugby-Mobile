@@ -2,6 +2,41 @@ import 'package:flutter/material.dart';
 import 'package:rugby_jam_mobile/core/theme/app_colors.dart';
 import 'package:rugby_jam_mobile/features/dashboard/data/dashboard_models.dart';
 
+const _finalStatusCodes = {
+  'FT',
+  'AET',
+  'CANC',
+  'PST',
+  'POST',
+  'ABD',
+  'AWD',
+  'WO',
+};
+const _liveStatusCodes = {
+  'LIVE',
+  '1H',
+  'HT',
+  '2H',
+  'ET',
+  'BT',
+  'P',
+  'INT',
+  'INTR',
+};
+const _liveStatusLabels = [
+  'live',
+  'in play',
+  'in progress',
+  'first half',
+  'half time',
+  'halftime',
+  'second half',
+  'extra time',
+  'break time',
+  'interrupted',
+  'pause',
+];
+
 class RugbyFixtureStatusInfo {
   const RugbyFixtureStatusInfo({
     required this.label,
@@ -52,12 +87,14 @@ int? rugbyFixtureKickoffTime(RugbyFixture fixture) {
     return fixture.timestamp! * 1000;
   }
 
-  final kickoff = fixture.date == null ? null : DateTime.tryParse(fixture.date!);
+  final kickoff = fixture.date == null
+      ? null
+      : DateTime.tryParse(fixture.date!);
   return kickoff?.millisecondsSinceEpoch;
 }
 
 RugbyFixtureStatusInfo rugbyFixtureStatus(RugbyFixture fixture) {
-  if (fixture.score.home != null && fixture.score.away != null) {
+  if (_isFinalFixture(fixture)) {
     return const RugbyFixtureStatusInfo(
       label: 'Termine',
       color: Color(0xFF22C55E),
@@ -67,14 +104,7 @@ RugbyFixtureStatusInfo rugbyFixtureStatus(RugbyFixture fixture) {
     );
   }
 
-  final kickoff = fixture.date == null ? null : DateTime.tryParse(fixture.date!);
-  final localKickoff = kickoff?.toLocal();
-  final now = DateTime.now();
-  final isLiveWindow = localKickoff != null &&
-      now.isAfter(localKickoff.subtract(const Duration(minutes: 30))) &&
-      now.isBefore(localKickoff.add(const Duration(hours: 3, minutes: 30)));
-
-  if (isLiveWindow) {
+  if (_isLiveFixture(fixture) || _isLiveFixtureWindow(fixture)) {
     return const RugbyFixtureStatusInfo(
       label: 'Live',
       color: AppColors.live,
@@ -85,6 +115,16 @@ RugbyFixtureStatusInfo rugbyFixtureStatus(RugbyFixture fixture) {
     );
   }
 
+  if (fixture.score.home != null && fixture.score.away != null) {
+    return const RugbyFixtureStatusInfo(
+      label: 'Termine',
+      color: Color(0xFF22C55E),
+      textColor: Color(0xFFC7F7DC),
+      background: Color(0x1F3FB984),
+      border: Color(0x663FB984),
+    );
+  }
+
   return const RugbyFixtureStatusInfo(
     label: 'A venir',
     color: Color(0xFFFBBF24),
@@ -92,4 +132,43 @@ RugbyFixtureStatusInfo rugbyFixtureStatus(RugbyFixture fixture) {
     background: Color(0x24FBBF24),
     border: Color(0x66FBBF24),
   );
+}
+
+bool _isFinalFixture(RugbyFixture fixture) {
+  final shortStatus = fixture.status.short?.toUpperCase();
+  final longStatus = fixture.status.long?.toLowerCase();
+
+  return (shortStatus != null && _finalStatusCodes.contains(shortStatus)) ||
+      (longStatus?.contains('finished') ?? false) ||
+      (longStatus?.contains('cancelled') ?? false) ||
+      (longStatus?.contains('postponed') ?? false) ||
+      (longStatus?.contains('abandoned') ?? false);
+}
+
+bool _isLiveFixture(RugbyFixture fixture) {
+  final shortStatus = fixture.status.short?.toUpperCase();
+  final longStatus = fixture.status.long?.toLowerCase();
+
+  if (shortStatus != null && _liveStatusCodes.contains(shortStatus)) {
+    return true;
+  }
+
+  if (fixture.status.elapsed != null) {
+    return true;
+  }
+
+  return _liveStatusLabels.any((label) => longStatus?.contains(label) ?? false);
+}
+
+bool _isLiveFixtureWindow(RugbyFixture fixture) {
+  final kickoff = fixture.date == null
+      ? null
+      : DateTime.tryParse(fixture.date!);
+  final localKickoff = kickoff?.toLocal();
+  final now = DateTime.now();
+  final isLiveWindow =
+      localKickoff != null &&
+      now.isAfter(localKickoff.subtract(const Duration(minutes: 2))) &&
+      now.isBefore(localKickoff.add(const Duration(hours: 3, minutes: 30)));
+  return isLiveWindow;
 }

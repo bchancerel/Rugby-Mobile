@@ -62,12 +62,13 @@ class _FavoritesPreview extends StatelessWidget {
 List<RugbyFavoriteMatch> _buildDashboardAlertMatches(
   List<RugbyFavoriteMatch> favoriteMatches,
 ) {
-  final matches = favoriteMatches
-      .where((match) => match.type == 'team' && match.nextFixture != null)
-      .toList()
-    ..sort(
-      (a, b) => a.nextFixture!.sortTime.compareTo(b.nextFixture!.sortTime),
-    );
+  final matches =
+      favoriteMatches
+          .where((match) => match.type == 'team' && match.nextFixture != null)
+          .toList()
+        ..sort(
+          (a, b) => a.nextFixture!.sortTime.compareTo(b.nextFixture!.sortTime),
+        );
 
   return matches.take(3).toList();
 }
@@ -98,21 +99,21 @@ RugbyFixture? _pickFavoriteTeamContextFixture(
   RugbyFavoriteMatch favoriteMatch,
   int now,
 ) {
-  final candidates = [
-    favoriteMatch.nextFixture,
-    favoriteMatch.lastFixture,
-  ].whereType<RugbyFixture>().where((fixture) {
-    return fixture.league.id != null && fixture.league.season != null;
-  }).toList();
+  final candidates = [favoriteMatch.nextFixture, favoriteMatch.lastFixture]
+      .whereType<RugbyFixture>()
+      .where((fixture) {
+        return fixture.league.id != null && fixture.league.season != null;
+      })
+      .toList();
 
   if (candidates.isEmpty) {
     return null;
   }
 
   candidates.sort((a, b) {
-    final distanceCompare = (a.sortTime - now)
-        .abs()
-        .compareTo((b.sortTime - now).abs());
+    final distanceCompare = (a.sortTime - now).abs().compareTo(
+      (b.sortTime - now).abs(),
+    );
 
     if (distanceCompare != 0) {
       return distanceCompare;
@@ -228,10 +229,7 @@ class _DashboardAlertsPanelState extends State<_DashboardAlertsPanel> {
         gradient: const LinearGradient(
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
-          colors: [
-            Color(0x24FBBF24),
-            Color(0x1000D47E),
-          ],
+          colors: [Color(0x24FBBF24), Color(0x1000D47E)],
         ),
       ),
       child: Padding(
@@ -276,9 +274,9 @@ class _DashboardAlertsPanelState extends State<_DashboardAlertsPanel> {
             if (widget.matches.isEmpty)
               Text(
                 'Aucun prochain match trouve pour tes equipes favorites.',
-                style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                      color: AppColors.grayCool,
-                    ),
+                style: Theme.of(
+                  context,
+                ).textTheme.bodyMedium?.copyWith(color: AppColors.grayCool),
               )
             else
               ...widget.matches.map(
@@ -292,10 +290,7 @@ class _DashboardAlertsPanelState extends State<_DashboardAlertsPanel> {
 }
 
 class _DashboardAlertRow extends StatelessWidget {
-  const _DashboardAlertRow({
-    required this.match,
-    required this.now,
-  });
+  const _DashboardAlertRow({required this.match, required this.now});
 
   final RugbyFavoriteMatch match;
   final DateTime now;
@@ -343,8 +338,8 @@ class _DashboardAlertRow extends StatelessWidget {
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
                         style: Theme.of(context).textTheme.bodyLarge?.copyWith(
-                              fontWeight: FontWeight.w900,
-                            ),
+                          fontWeight: FontWeight.w900,
+                        ),
                       ),
                       const SizedBox(height: 2),
                       Text(
@@ -352,8 +347,8 @@ class _DashboardAlertRow extends StatelessWidget {
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
                         style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                              color: AppColors.grayCool,
-                            ),
+                          color: AppColors.grayCool,
+                        ),
                       ),
                     ],
                   ),
@@ -390,19 +385,16 @@ class _CountdownPill extends StatelessWidget {
         child: Text(
           label,
           style: Theme.of(context).textTheme.labelSmall?.copyWith(
-                color: const Color(0xFFFDE68A),
-                fontWeight: FontWeight.w900,
-              ),
+            color: const Color(0xFFFDE68A),
+            fontWeight: FontWeight.w900,
+          ),
         ),
       ),
     );
   }
 }
 
-String _dashboardAlertTitle(
-  RugbyFavoriteMatch match,
-  RugbyFixture fixture,
-) {
+String _dashboardAlertTitle(RugbyFavoriteMatch match, RugbyFixture fixture) {
   final favoriteTeamName = match.label;
   final homeName = fixture.teams.home.name;
   final awayName = fixture.teams.away.name;
@@ -431,23 +423,33 @@ String _formatDashboardCountdown(RugbyFixture fixture, DateTime now) {
     return diff.abs() < const Duration(hours: 4) ? 'Live' : 'Termine';
   }
 
-  final days = diff.inDays;
-  final hours = diff.inHours.remainder(24);
-  final minutes = diff.inMinutes.remainder(60);
-
-  if (days > 0) {
-    return 'J-$days ${hours}h';
+  if (diff >= const Duration(days: 7)) {
+    return _formatDashboardCountdownDate(kickoff);
   }
 
-  if (hours > 0) {
-    return '${hours}h ${minutes}m';
+  if (diff >= const Duration(hours: 24)) {
+    return 'J-${_ceilDurationUnit(diff, const Duration(days: 1))}';
   }
 
-  if (minutes > 0) {
-    return '${minutes}m';
+  if (diff >= const Duration(hours: 1)) {
+    return 'H-${_ceilDurationUnit(diff, const Duration(hours: 1))}';
+  }
+
+  if (diff >= const Duration(minutes: 1)) {
+    return 'Dans ${_ceilDurationUnit(diff, const Duration(minutes: 1))} min';
   }
 
   return 'Maintenant';
+}
+
+int _ceilDurationUnit(Duration duration, Duration unit) {
+  return (duration.inMilliseconds / unit.inMilliseconds).ceil();
+}
+
+String _formatDashboardCountdownDate(DateTime date) {
+  final day = date.day.toString().padLeft(2, '0');
+  final month = date.month.toString().padLeft(2, '0');
+  return '$day/$month';
 }
 
 class _FavoriteStrip extends StatelessWidget {
@@ -492,9 +494,8 @@ class _FavoriteStrip extends StatelessWidget {
                 hasLogoSlot: logoBuilder != null,
                 label: favorite.entityName ?? favorite.entityId,
                 subtitle: subtitleBuilder?.call(favorite),
-                onTap: () => Navigator.of(context).pushNamed(
-                  routeBuilder(favorite),
-                ),
+                onTap: () =>
+                    Navigator.of(context).pushNamed(routeBuilder(favorite)),
               ),
             ),
           ],
@@ -531,26 +532,18 @@ class _FavoriteRow extends StatelessWidget {
         contentPadding: EdgeInsets.zero,
         minLeadingWidth: 24,
         leading: hasLogoSlot
-            ? _FavoriteLogo(
-                url: logo,
-                icon: icon,
-                showFrame: showLogoFrame,
-              )
+            ? _FavoriteLogo(url: logo, icon: icon, showFrame: showLogoFrame)
             : Icon(icon, color: AppColors.primary),
-        title: Text(
-          label,
-          maxLines: 1,
-          overflow: TextOverflow.ellipsis,
-        ),
+        title: Text(label, maxLines: 1, overflow: TextOverflow.ellipsis),
         subtitle: subtitle == null
             ? null
             : Text(
                 subtitle!,
                 maxLines: 1,
                 overflow: TextOverflow.ellipsis,
-                style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                      color: AppColors.grayCool,
-                    ),
+                style: Theme.of(
+                  context,
+                ).textTheme.bodySmall?.copyWith(color: AppColors.grayCool),
               ),
         trailing: const Icon(Icons.chevron_right),
       ),
@@ -600,4 +593,3 @@ class _FavoriteLogo extends StatelessWidget {
     );
   }
 }
-

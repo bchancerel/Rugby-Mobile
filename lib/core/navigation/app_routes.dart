@@ -10,9 +10,10 @@ import 'package:rugby_jam_mobile/features/dashboard/dashboard_screen.dart';
 import 'package:rugby_jam_mobile/features/home/home_screen.dart';
 import 'package:rugby_jam_mobile/features/leagues/league_detail_screen.dart';
 import 'package:rugby_jam_mobile/features/leagues/leagues_screen.dart';
+import 'package:rugby_jam_mobile/features/matches/match_detail_screen.dart';
+import 'package:rugby_jam_mobile/features/matches/matches_screen.dart';
 import 'package:rugby_jam_mobile/features/placeholders/route_placeholder_screen.dart';
 import 'package:rugby_jam_mobile/features/supporter/supporter_screen.dart';
-import 'package:rugby_jam_mobile/features/supporter/data/supporter_tracking.dart';
 import 'package:rugby_jam_mobile/features/teams/team_detail_screen.dart';
 import 'package:rugby_jam_mobile/features/user/user_account_screen.dart';
 
@@ -42,7 +43,8 @@ class AppRoutes {
   static Route<void> onGenerateRoute(RouteSettings settings) {
     final parsedRoute = _parseRoute(settings);
     final routeName = _guardRoute(parsedRoute.routeName);
-    final token = _tokenFromArguments(settings.arguments) ??
+    final token =
+        _tokenFromArguments(settings.arguments) ??
         parsedRoute.queryParameters['token'] ??
         '';
 
@@ -57,22 +59,15 @@ class AppRoutes {
         transitionDuration: Duration.zero,
         reverseTransitionDuration: Duration.zero,
         pageBuilder: (context, animation, secondaryAnimation) {
-          return _buildScreen(
-            routeName,
-            token,
-            parsedRoute.queryParameters,
-          );
+          return _buildScreen(routeName, token, parsedRoute.queryParameters);
         },
       );
     }
 
     return MaterialPageRoute<void>(
       settings: routeSettings,
-      builder: (context) => _buildScreen(
-        routeName,
-        token,
-        parsedRoute.queryParameters,
-      ),
+      builder: (context) =>
+          _buildScreen(routeName, token, parsedRoute.queryParameters),
     );
   }
 
@@ -89,13 +84,7 @@ class AppRoutes {
     }
 
     if (_isMatchDetailRoute(routeName)) {
-      SupporterTracking.trackMatchViewed(_matchIdFromRoute(routeName));
-      return RoutePlaceholderScreen(
-        title: 'Detail du match',
-        routeName: routeName,
-        icon: Icons.sports_rugby,
-        showBottomNav: true,
-      );
+      return MatchDetailScreen(matchId: _matchIdFromRoute(routeName));
     }
 
     if (_isTeamDetailRoute(routeName)) {
@@ -115,36 +104,31 @@ class AppRoutes {
       resetPassword => ResetPasswordScreen(token: token),
       verifyEmail => VerifyEmailScreen(token: token),
       leagues => const LeaguesScreen(),
-      matches => const RoutePlaceholderScreen(
-          title: 'Matchs',
-          routeName: matches,
-          icon: Icons.calendar_month,
-          showBottomNav: true,
-        ),
+      matches => const MatchesScreen(),
       teams => const RoutePlaceholderScreen(
-          title: 'Equipes',
-          routeName: teams,
-          icon: Icons.groups,
-          showBottomNav: true,
-        ),
+        title: 'Equipes',
+        routeName: teams,
+        icon: Icons.groups,
+        showBottomNav: true,
+      ),
       actualites => const RoutePlaceholderScreen(
-          title: 'Actualites',
-          routeName: actualites,
-          icon: Icons.newspaper,
-          showBottomNav: true,
-        ),
+        title: 'Actualites',
+        routeName: actualites,
+        icon: Icons.newspaper,
+        showBottomNav: true,
+      ),
       supporter => const SupporterScreen(),
       user => const UserAccountScreen(),
       admin => const RoutePlaceholderScreen(
-          title: 'Administration',
-          routeName: admin,
-          icon: Icons.admin_panel_settings,
-        ),
+        title: 'Administration',
+        routeName: admin,
+        icon: Icons.admin_panel_settings,
+      ),
       mentionsLegales => const RoutePlaceholderScreen(
-          title: 'Mentions legales',
-          routeName: mentionsLegales,
-          icon: Icons.gavel,
-        ),
+        title: 'Mentions legales',
+        routeName: mentionsLegales,
+        icon: Icons.gavel,
+      ),
       _ => const HomeScreen(),
     };
   }
@@ -226,6 +210,10 @@ class AppRoutes {
       return leagues;
     }
 
+    if (routeName == '/matchs') {
+      return matches;
+    }
+
     return routeName;
   }
 
@@ -284,11 +272,7 @@ class AppRoutes {
         routeName == user;
   }
 
-  static const _guestOnlyRoutes = {
-    login,
-    forgotPassword,
-    resetPassword,
-  };
+  static const _guestOnlyRoutes = {login, forgotPassword, resetPassword};
 
   static String? _tokenFromArguments(Object? arguments) {
     if (arguments is String) {
