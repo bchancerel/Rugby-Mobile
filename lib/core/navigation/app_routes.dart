@@ -12,6 +12,7 @@ import 'package:rugby_jam_mobile/features/leagues/league_detail_screen.dart';
 import 'package:rugby_jam_mobile/features/leagues/leagues_screen.dart';
 import 'package:rugby_jam_mobile/features/matches/match_detail_screen.dart';
 import 'package:rugby_jam_mobile/features/matches/matches_screen.dart';
+import 'package:rugby_jam_mobile/features/news/news_screen.dart';
 import 'package:rugby_jam_mobile/features/placeholders/route_placeholder_screen.dart';
 import 'package:rugby_jam_mobile/features/supporter/supporter_screen.dart';
 import 'package:rugby_jam_mobile/features/teams/team_detail_screen.dart';
@@ -111,12 +112,7 @@ class AppRoutes {
         icon: Icons.groups,
         showBottomNav: true,
       ),
-      actualites => const RoutePlaceholderScreen(
-        title: 'Actualites',
-        routeName: actualites,
-        icon: Icons.newspaper,
-        showBottomNav: true,
-      ),
+      actualites => const NewsScreen(),
       supporter => const SupporterScreen(),
       user => const UserAccountScreen(),
       admin => const RoutePlaceholderScreen(

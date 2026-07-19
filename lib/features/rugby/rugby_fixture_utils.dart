@@ -23,6 +23,11 @@ const _liveStatusCodes = {
   'INT',
   'INTR',
 };
+const _scheduledStatusCodes = {
+  'NS',
+  'TBD',
+  'TBA',
+};
 const _liveStatusLabels = [
   'live',
   'in play',
@@ -35,6 +40,14 @@ const _liveStatusLabels = [
   'break time',
   'interrupted',
   'pause',
+];
+const _scheduledStatusLabels = [
+  'not started',
+  'not start',
+  'fixture not started',
+  'scheduled',
+  'time to be defined',
+  'to be defined',
 ];
 
 class RugbyFixtureStatusInfo {
@@ -104,7 +117,7 @@ RugbyFixtureStatusInfo rugbyFixtureStatus(RugbyFixture fixture) {
     );
   }
 
-  if (_isLiveFixture(fixture) || _isLiveFixtureWindow(fixture)) {
+  if (_isLiveFixture(fixture)) {
     return const RugbyFixtureStatusInfo(
       label: 'Live',
       color: AppColors.live,
@@ -149,18 +162,36 @@ bool _isLiveFixture(RugbyFixture fixture) {
   final shortStatus = fixture.status.short?.toUpperCase();
   final longStatus = fixture.status.long?.toLowerCase();
 
+  if (_isScheduledFixture(fixture)) {
+    return false;
+  }
+
   if (shortStatus != null && _liveStatusCodes.contains(shortStatus)) {
     return true;
   }
 
-  if (fixture.status.elapsed != null) {
+  if ((fixture.status.elapsed ?? 0) > 0) {
     return true;
   }
 
   return _liveStatusLabels.any((label) => longStatus?.contains(label) ?? false);
 }
 
-bool _isLiveFixtureWindow(RugbyFixture fixture) {
+bool _isScheduledFixture(RugbyFixture fixture) {
+  final shortStatus = fixture.status.short?.toUpperCase();
+  final longStatus = fixture.status.long?.toLowerCase();
+
+  return (shortStatus != null && _scheduledStatusCodes.contains(shortStatus)) ||
+      _scheduledStatusLabels.any(
+        (label) => longStatus?.contains(label) ?? false,
+      );
+}
+
+bool isRugbyFixtureInRefreshWindow(RugbyFixture fixture) {
+  if (_isFinalFixture(fixture)) {
+    return false;
+  }
+
   final kickoff = fixture.date == null
       ? null
       : DateTime.tryParse(fixture.date!);

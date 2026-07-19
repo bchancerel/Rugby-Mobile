@@ -10,14 +10,7 @@ bool _shouldAutoRefreshFixture(RugbyFixture fixture) {
     return false;
   }
 
-  final kickoffTime = rugbyFixtureKickoffTime(fixture);
-  if (kickoffTime == null) {
-    return true;
-  }
-
-  final now = DateTime.now().millisecondsSinceEpoch;
-  return now >= kickoffTime - const Duration(minutes: 2).inMilliseconds &&
-      now <= kickoffTime + const Duration(hours: 4).inMilliseconds;
+  return isRugbyFixtureInRefreshWindow(fixture);
 }
 
 bool _shouldShowFixtureOdds(RugbyFixture fixture) {
